@@ -2,7 +2,8 @@ import { IDatabaseMap } from "@js-soft/docdb-access-abstractions";
 import { Serializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreDate } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoExchangeKeypair, CryptoExchangePrivateKey, CryptoSecretKey, CryptoSignatureKeypair, CryptoSignaturePrivateKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoCipher, CryptoEncryptionAlgorithm, CryptoExchangeKeypair, CryptoExchangePrivateKey, CryptoSecretKey, CryptoSignatureKeypair, CryptoSignaturePrivateKey, ICryptoCipher } from "@nmshd/crypto";
+import { KeyHandle } from "crypto-layer-ts-types";
 import { CoreCrypto, TransportCoreErrors } from "../../core";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { TransportIds } from "../../core/TransportIds";
@@ -33,9 +34,9 @@ export class DeviceSecretController extends TransportController {
 
     private static readonly secretContext: string = "DEVICE01";
 
-    private readonly baseKey?: CryptoSecretKey;
+    private readonly baseKey?: CryptoSecretKey | KeyHandle;
 
-    public constructor(parent: AccountController, baseKey: CryptoSecretKey) {
+    public constructor(parent: AccountController, baseKey: CryptoSecretKey | KeyHandle) {
         super(ControllerName.DeviceSecret, parent);
         this.baseKey = baseKey;
     }
@@ -50,14 +51,29 @@ export class DeviceSecretController extends TransportController {
 
     public async storeSecret(
         secret: DeviceSecretCredentials | CryptoExchangeKeypair | CryptoExchangePrivateKey | CryptoSignatureKeypair | CryptoSignaturePrivateKey | CryptoSecretKey,
-        name: string
+        name: DeviceSecretType
     ): Promise<SecretContainerCipher> {
+
+        const baseKey = this.getBaseKey();
         const plainString = secret.serialize();
         const plainBuffer = CoreBuffer.fromUtf8(plainString);
 
-        const encryptionKey = await CoreCrypto.deriveKeyFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
+        let cipher = undefined;
 
-        const cipher = await CoreCrypto.encrypt(plainBuffer, encryptionKey);
+        if (baseKey instanceof CryptoSecretKey) {
+            const encryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
+            cipher = await CoreCrypto.encrypt(plainBuffer, encryptionKey);
+        } else {
+            const encryption_result = baseKey.encryptData(Uint8Array.from(plainString))
+            cipher = {
+                cipher: CoreBuffer.from(encryption_result[0]),
+                nonce: CoreBuffer.from(encryption_result[1]),
+                counter: undefined,
+                algorithm: CryptoEncryptionAlgorithm.XCHACHA20_POLY1305 // TODO: Get the algorithm from baseKey or make algorithm optional.
+                
+            } as ICryptoCipher;
+
+        }
         const date = CoreDate.utc();
         const container = SecretContainerCipher.from({
             cipher: cipher,
@@ -75,16 +91,24 @@ export class DeviceSecretController extends TransportController {
         return container;
     }
 
-    public async loadSecret(name: string): Promise<SecretContainerPlain | undefined> {
+    public async loadSecret(name: DeviceSecretType): Promise<SecretContainerPlain | undefined> {
         const secretObj = await this.secrets.get(name);
         if (!secretObj) return;
 
         const baseKey = this.getBaseKey();
         const secret = SecretContainerCipher.from(secretObj);
-        const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
-        const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
-        const plainString = plainBuffer.toUtf8();
-
+        
+        let plainString = undefined;
+        if (baseKey instanceof CryptoSecretKey) {
+            const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
+            const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
+            plainString = plainBuffer.toUtf8();
+        } else {
+            const cipher = secret.cipher.cipher.buffer;
+            const nonce = secret.cipher.nonce?.buffer ?? new Uint8Array(0);
+            const decrypted_data = baseKey.decryptData(cipher, nonce);
+            plainString = decrypted_data.toString()
+        }
         const decryptedSecret = Serializable.deserializeUnknown(plainString);
 
         const plainSecret = SecretContainerPlain.from({
@@ -100,7 +124,7 @@ export class DeviceSecretController extends TransportController {
         return plainSecret;
     }
 
-    public async deleteSecret(name: string): Promise<boolean> {
+    public async deleteSecret(name: DeviceSecretType): Promise<boolean> {
         const secretObj = await this.secrets.get(name);
         if (!secretObj) return false;
 
@@ -191,7 +215,7 @@ export class DeviceSecretController extends TransportController {
     }
 
     @log()
-    private getBaseKey(): CryptoSecretKey {
+    private getBaseKey(): CryptoSecretKey | KeyHandle {
         if (!this.baseKey) {
             throw TransportCoreErrors.general.recordNotFound(CryptoSecretKey, DeviceSecretType.SharedSecretBaseKey);
         }
