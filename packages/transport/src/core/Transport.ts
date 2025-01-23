@@ -89,7 +89,7 @@ export class Transport {
         public readonly eventBus: EventBus,
         loggerFactory: ILoggerFactory = new SimpleLoggerFactory(),
         public readonly correlator?: ICorrelator,
-        private cryptoLayerProviderInitializationMethods?: ProviderFactoryFunctions,
+        protected cryptoLayerProviderInitializationFunctions?: ProviderFactoryFunctions,
     ) {
         this.databaseConnection = databaseConnection;
         this._config = _.defaultsDeep({}, customConfig, Transport.defaultConfig);
