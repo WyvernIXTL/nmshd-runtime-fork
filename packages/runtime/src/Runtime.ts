@@ -18,6 +18,7 @@ import {
     AnonymousTokenController,
     BackboneCompatibilityController,
     ChallengeController,
+    CryptoLayerConfig,
     DeviceController,
     DevicesController,
     FileController,
@@ -32,7 +33,6 @@ import {
     Transport
 } from "@nmshd/transport";
 import { Container, Scope } from "@nmshd/typescript-ioc";
-import { ProviderFactoryFunctions } from "crypto-layer-ts-types";
 import { buildInformation } from "./buildInformation";
 import { DatabaseSchemaUpgrader } from "./DatabaseSchemaUpgrader";
 import { DataViewExpander } from "./dataViews";
@@ -116,7 +116,7 @@ export abstract class Runtime<TConfig extends RuntimeConfig = RuntimeConfig> {
         protected loggerFactory: ILoggerFactory,
         eventBus?: EventBus,
         protected correlator?: AbstractCorrelator,
-        protected cryptoLayerProviderInitializationFunctions?: ProviderFactoryFunctions,
+        protected cryptoLayerConfig?: CryptoLayerConfig,
     ) {
         this._logger = this.loggerFactory.getLogger(this.constructor.name);
 
@@ -189,7 +189,7 @@ export abstract class Runtime<TConfig extends RuntimeConfig = RuntimeConfig> {
             this.logger.error(`An error was thrown in an event handler of the transport event bus (namespace: '${namespace}'). Root error: ${error}`);
         });
 
-        this.transport = new Transport(databaseConnection, transportConfig, eventBus, this.loggerFactory, this.correlator, this.cryptoLayerProviderInitializationFunctions);
+        this.transport = new Transport(databaseConnection, transportConfig, eventBus, this.loggerFactory, this.correlator, this.cryptoLayerConfig);
 
         this.logger.debug("Initializing Transport Library...");
         await this.transport.init();

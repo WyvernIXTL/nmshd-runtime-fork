@@ -3,10 +3,10 @@ import { ILogger, ILoggerFactory } from "@js-soft/logging-abstractions";
 import { SimpleLoggerFactory } from "@js-soft/simple-logger";
 import { EventBus } from "@js-soft/ts-utils";
 import { SodiumWrapper } from "@nmshd/crypto";
-import { ProviderFactoryFunctions } from "crypto-layer-ts-types";
 import { AgentOptions } from "http";
 import { AgentOptions as HTTPSAgentOptions } from "https";
 import _ from "lodash";
+import { CryptoLayerConfig } from "./CryptoLayerConfig";
 import { ICorrelator } from "./ICorrelator";
 import { TransportCoreErrors } from "./TransportCoreErrors";
 import { TransportError } from "./TransportError";
@@ -89,7 +89,7 @@ export class Transport {
         public readonly eventBus: EventBus,
         loggerFactory: ILoggerFactory = new SimpleLoggerFactory(),
         public readonly correlator?: ICorrelator,
-        protected cryptoLayerProviderInitializationFunctions?: ProviderFactoryFunctions,
+        public readonly cryptoLayerConfig?: CryptoLayerConfig,
     ) {
         this.databaseConnection = databaseConnection;
         this._config = _.defaultsDeep({}, customConfig, Transport.defaultConfig);
