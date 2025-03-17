@@ -2,11 +2,10 @@ import { IDatabaseCollectionProvider, IDatabaseConnection } from "@js-soft/docdb
 import { ILogger, ILoggerFactory } from "@js-soft/logging-abstractions";
 import { SimpleLoggerFactory } from "@js-soft/simple-logger";
 import { EventBus } from "@js-soft/ts-utils";
-import { SodiumWrapper } from "@nmshd/crypto";
+import { SodiumWrapper, CryptoLayerConfig, initCryptoLayerProviders } from "@nmshd/crypto";
 import { AgentOptions } from "http";
 import { AgentOptions as HTTPSAgentOptions } from "https";
 import _ from "lodash";
-import { CryptoLayerConfig } from "./CryptoLayerConfig";
 import { ICorrelator } from "./ICorrelator";
 import { TransportCoreErrors } from "./TransportCoreErrors";
 import { TransportError } from "./TransportError";
@@ -89,7 +88,7 @@ export class Transport {
         public readonly eventBus: EventBus,
         loggerFactory: ILoggerFactory = new SimpleLoggerFactory(),
         public readonly correlator?: ICorrelator,
-        public readonly cryptoLayerConfig?: CryptoLayerConfig,
+        public readonly cryptoLayerConfig?: CryptoLayerConfig
     ) {
         this.databaseConnection = databaseConnection;
         this._config = _.defaultsDeep({}, customConfig, Transport.defaultConfig);
@@ -126,6 +125,14 @@ export class Transport {
         log.trace("Initializing Libsodium...");
         await SodiumWrapper.ready();
         log.trace("Libsodium initialized");
+
+        if (this.cryptoLayerConfig) {
+            log.trace("Initializing Crypto Layer...");
+
+            initCryptoLayerProviders(this.cryptoLayerConfig);
+
+            log.trace("Crypto Layer initialized");
+        }
 
         log.info("Transport initialized");
 
