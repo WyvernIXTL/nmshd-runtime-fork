@@ -88,7 +88,10 @@ export class Transport {
         public readonly eventBus: EventBus,
         loggerFactory: ILoggerFactory = new SimpleLoggerFactory(),
         public readonly correlator?: ICorrelator,
-        public readonly cryptoLayerConfig?: CryptoLayerConfig
+        public readonly cryptoLayer?: {
+            config: CryptoLayerConfig;
+            // initializeAllAvailableProviders: boolean;
+        }
     ) {
         this.databaseConnection = databaseConnection;
         this._config = _.defaultsDeep({}, customConfig, Transport.defaultConfig);
@@ -123,16 +126,16 @@ export class Transport {
 
     public async init(): Promise<Transport> {
         log.trace("Initializing Libsodium...");
-        await SodiumWrapper.ready();
-        log.trace("Libsodium initialized");
+        const sodium = SodiumWrapper.ready();
 
-        if (this.cryptoLayerConfig) {
+        if (this.cryptoLayer) {
             log.trace("Initializing Crypto Layer...");
-
-            initCryptoLayerProviders(this.cryptoLayerConfig);
-
+            await initCryptoLayerProviders(this.cryptoLayer.config);
             log.trace("Crypto Layer initialized");
         }
+
+        await sodium;
+        log.trace("Libsodium initialized");
 
         log.info("Transport initialized");
 
