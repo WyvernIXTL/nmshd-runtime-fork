@@ -4,6 +4,7 @@ import { CoreId } from "@nmshd/core-types";
 import {
     CoreBuffer,
     CryptoCipher,
+    CryptoExchangeAlgorithm,
     CryptoExchangeKeypair,
     CryptoRelationshipPublicRequest,
     CryptoRelationshipPublicResponse,
@@ -21,6 +22,7 @@ import { TransportIds } from "../../core/TransportIds";
 import { AccountController } from "../accounts/AccountController";
 import { CachedRelationshipTemplate } from "../relationshipTemplates/local/CachedRelationshipTemplate";
 import { RelationshipTemplatePublicKey } from "../relationshipTemplates/transmission/RelationshipTemplatePublicKey";
+import { RelationshipTemplatePublicKeyHandle } from "../relationshipTemplates/transmission/RelationshipTemplatePublicKeyHandle";
 import { SecretContainerCipher } from "../secrets/data/SecretContainerCipher";
 import { SecretController } from "../secrets/SecretController";
 
@@ -172,12 +174,23 @@ export class RelationshipSecretController extends SecretController {
         return await secrets.decryptRequest(cipher);
     }
 
+    public async createTemplateKeyHandle(): Promise<RelationshipTemplatePublicKeyHandle> {
+        const templateKeyId = await TransportIds.relationshipTemplateKey.generate();
+        const key = await this.createExchangeKeyHandle(`${templateKeyId.toString()}`);
+        const publicKey = key[0];
+        return await RelationshipTemplatePublicKeyHandle.from({
+            id: templateKeyId.toString(),
+            algorithm: CryptoExchangeAlgorithm.ECDH_P256,
+            publicKey: CoreBuffer.from(publicKey)
+        });
+    }
+
     public async createTemplateKey(): Promise<RelationshipTemplatePublicKey> {
         const templateKeyId = await TransportIds.relationshipTemplateKey.generate();
         const key = await this.createExchangeKey(`${templateKeyId.toString()}`);
         const publicKey = key[0];
         return RelationshipTemplatePublicKey.from({
-            id: templateKeyId,
+            id: templateKeyId.toString(),
             algorithm: publicKey.algorithm,
             publicKey: publicKey.publicKey
         });

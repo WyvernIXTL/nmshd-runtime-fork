@@ -3,6 +3,7 @@ import { CoreAddress, CoreDate, CoreId, ICoreAddress, ICoreDate, ICoreId } from 
 import { ICryptoExchangePublicKey } from "@nmshd/crypto";
 import { IIdentity, Identity } from "../../accounts/data/Identity";
 import { RelationshipTemplatePublicKey } from "../transmission/RelationshipTemplatePublicKey";
+import { RelationshipTemplatePublicKeyHandle } from "../transmission/RelationshipTemplatePublicKeyHandle";
 
 export interface ICachedRelationshipTemplate extends ISerializable {
     identity: IIdentity;
@@ -32,7 +33,7 @@ export class CachedRelationshipTemplate extends Serializable implements ICachedR
 
     @validate()
     @serialize()
-    public templateKey: RelationshipTemplatePublicKey;
+    public templateKey: RelationshipTemplatePublicKey | RelationshipTemplatePublicKeyHandle;
 
     @validate()
     @serialize()

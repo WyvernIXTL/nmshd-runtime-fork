@@ -7,6 +7,7 @@ import {
     CryptoExchangeKeypairHandle,
     CryptoExchangePrivateKey,
     CryptoExchangePublicKey,
+    CryptoExchangePublicKeyHandle,
     CryptoRelationshipRequestSecrets,
     CryptoRelationshipSecrets,
     CryptoSecretKey,
@@ -204,6 +205,12 @@ export class SecretController extends TransportController {
     }
 
     public async createExchangeKey(name = "", description = "", validTo?: CoreDate): Promise<[CryptoExchangePublicKey, SecretContainerCipher]> {
+        const exchangeKeypair = await CoreCrypto.generateExchangeKeypair();
+        const secretContainer = await this.storeSecret(exchangeKeypair, name, description, validTo);
+        return [exchangeKeypair.publicKey, secretContainer];
+    }
+
+    public async createExchangeKeyHandle(name = "", description = "", validTo?: CoreDate): Promise<[CryptoExchangePublicKeyHandle, SecretContainerCipher]> {
         const exchangeKeypair = await CoreCrypto.generateExchangeKeypairHandle({ providerName: "SoftwareProvider" });
         const secretContainer = await this.storeSecret(exchangeKeypair, name, description, validTo);
         return [exchangeKeypair.publicKey, secretContainer];
