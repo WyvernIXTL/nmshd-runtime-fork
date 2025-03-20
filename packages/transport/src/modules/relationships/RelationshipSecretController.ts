@@ -9,6 +9,7 @@ import {
     CryptoRelationshipPublicResponse,
     CryptoRelationshipRequestSecrets,
     CryptoRelationshipSecrets,
+    CryptoRelationshipSecretsHandle,
     CryptoSecretKey,
     CryptoSignature,
     CryptoSignaturePublicKey
@@ -94,11 +95,14 @@ export class RelationshipSecretController extends SecretController {
             throw TransportCoreErrors.general.recordNotFound(CryptoRelationshipSecrets, relationshipSecretId.toString());
         }
 
-        if (!(secret.secret instanceof CryptoRelationshipSecrets)) {
-            throw TransportCoreErrors.secrets.wrongSecretType(secret.id.toString());
+        if (secret.secret instanceof CryptoRelationshipSecrets) {
+            // Now the compiler knows secret.secret is a CryptoRelationshipSecrets
+            return (secret.secret as CryptoRelationshipSecrets).toPublicResponse();
+        } else if (secret.secret instanceof CryptoRelationshipSecretsHandle) {
+            // Now the compiler knows secret.secret is a CryptoRelationshipSecretsHandle
+            return CryptoRelationshipPublicResponse.from((secret.secret as CryptoRelationshipSecretsHandle).toPublicResponse());
         }
-        const publicResponse = secret.secret.toPublicResponse();
-        return publicResponse;
+        throw TransportCoreErrors.secrets.wrongSecretType(secret.id.toString());
     }
 
     @log()

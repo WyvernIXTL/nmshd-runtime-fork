@@ -9,6 +9,7 @@ import {
     CryptoRelationshipRequestSecrets,
     CryptoRelationshipSecrets,
     CryptoSecretKey,
+    CryptoSecretKeyHandle,
     CryptoSignatureKeypair,
     CryptoSignaturePrivateKey
 } from "@nmshd/crypto";
@@ -42,7 +43,7 @@ export class SecretController extends TransportController {
 
     private nonce = 0;
 
-    private baseKey?: CryptoSecretKey;
+    private baseKey?: CryptoSecretKey | CryptoSecretKeyHandle;
 
     private secrets: SynchronizedCollection;
 
@@ -207,7 +208,7 @@ export class SecretController extends TransportController {
     }
 
     @log()
-    private async getBaseKey(): Promise<CryptoSecretKey> {
+    private async getBaseKey(): Promise<CryptoSecretKey | CryptoSecretKeyHandle> {
         if (this.baseKey) {
             return this.baseKey;
         }
@@ -215,7 +216,7 @@ export class SecretController extends TransportController {
         const baseKey = await this.parent.activeDevice.secrets.loadSecret(DeviceSecretType.SharedSecretBaseKey);
 
         if (baseKey) {
-            this.baseKey = baseKey.secret as CryptoSecretKey;
+            this.baseKey = baseKey.secret as unknown as CryptoSecretKey;
         } else {
             throw TransportCoreErrors.general.recordNotFound(CryptoSecretKey, DeviceSecretType.SharedSecretBaseKey);
         }

@@ -1,6 +1,6 @@
 import { serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, CoreId } from "@nmshd/core-types";
-import { CryptoSignaturePublicKey, ICryptoSignaturePublicKey } from "@nmshd/crypto";
+import { CryptoSignaturePublicKey, ICryptoSignaturePublicKey, ICryptoSignaturePublicKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
 import { CoreSynchronizable, ICoreSynchronizable } from "../../../core";
 
@@ -19,7 +19,7 @@ export interface DeviceInfo {
 
 export interface IDevice extends ICoreSynchronizable {
     isAdmin?: boolean;
-    publicKey?: ICryptoSignaturePublicKey;
+    publicKey?: ICryptoSignaturePublicKey | ICryptoSignaturePublicKeyHandle;
     certificate?: string;
     name: string;
     description?: string;

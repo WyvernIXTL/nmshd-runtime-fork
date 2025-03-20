@@ -1,6 +1,14 @@
 import { log } from "@js-soft/ts-utils";
 import { CoreDate, CoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoSecretKey, CryptoSignature, CryptoSignaturePrivateKey, CryptoSignaturePublicKey } from "@nmshd/crypto";
+import {
+    CoreBuffer,
+    CryptoSecretKey,
+    CryptoSecretKeyHandle,
+    CryptoSignature,
+    CryptoSignaturePrivateKey,
+    CryptoSignaturePrivateKeyHandle,
+    CryptoSignaturePublicKey
+} from "@nmshd/crypto";
 import { ControllerName, CoreCrypto, CredentialsBasic, TransportController, TransportCoreErrors, TransportError } from "../../core";
 import { AccountController } from "../accounts/AccountController";
 import { DeviceSecretController, DeviceSecretType } from "./DeviceSecretController";
@@ -59,7 +67,7 @@ export class DeviceController extends TransportController {
     }
 
     @log()
-    public override async init(baseKey: CryptoSecretKey, device: Device): Promise<DeviceController> {
+    public override async init(baseKey: CryptoSecretKey | CryptoSecretKeyHandle, device: Device): Promise<DeviceController> {
         await super.init();
 
         this._device = device;
@@ -102,10 +110,10 @@ export class DeviceController extends TransportController {
     @log()
     public async sign(content: CoreBuffer): Promise<CryptoSignature> {
         const privateKeyContainer = await this.secrets.loadSecret(DeviceSecretType.DeviceSignature);
-        if (!privateKeyContainer || !(privateKeyContainer.secret instanceof CryptoSignaturePrivateKey)) {
+        if (!privateKeyContainer || !(privateKeyContainer.secret instanceof CryptoSignaturePrivateKey || privateKeyContainer.secret instanceof CryptoSignaturePrivateKeyHandle)) {
             throw TransportCoreErrors.secrets.secretNotFound(DeviceSecretType.DeviceSignature);
         }
-        const privateKey = privateKeyContainer.secret;
+        const privateKey = CryptoSignaturePrivateKey.from(privateKeyContainer.secret);
         const signature = await CoreCrypto.sign(content, privateKey);
         privateKey.privateKey.clear();
 

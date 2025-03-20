@@ -262,15 +262,15 @@ export class AccountController {
     private async createIdentityAndDevice(): Promise<{ identity: Identity; device: Device }> {
         const [identityKeypair, devicePwdD1, deviceKeypair, privBaseShared, privBaseDevice] = await Promise.all([
             // Generate identity keypair
-            CoreCrypto.generateSignatureKeypair(),
+            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
             // Generate strong device password
             PasswordGenerator.createStrongPassword(45, 50),
             // Generate device keypair
-            CoreCrypto.generateSignatureKeypair(),
+            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
             // Generate Shared Base Key
-            CoreCrypto.generateSecretKey(),
+            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" }),
             // Generate Device Base Key
-            CoreCrypto.generateSecretKey()
+            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" })
         ]);
         this._log.trace("Created keys. Requesting challenge...");
 

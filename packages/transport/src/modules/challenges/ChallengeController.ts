@@ -1,6 +1,6 @@
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoSignatureKeypair } from "@nmshd/crypto";
+import { CoreBuffer, CryptoSignatureKeypair, CryptoSignatureKeypairHandle } from "@nmshd/crypto";
 import { CoreCrypto, TransportCoreErrors } from "../../core";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { AccountController } from "../accounts/AccountController";
@@ -70,7 +70,7 @@ export class ChallengeController extends TransportController {
         return await this.validateChallengeLocally(challenge, signedChallenge);
     }
 
-    public async createAccountCreationChallenge(identity: CryptoSignatureKeypair): Promise<ChallengeSigned> {
+    public async createAccountCreationChallenge(identity: CryptoSignatureKeypair | CryptoSignatureKeypairHandle): Promise<ChallengeSigned> {
         const backboneResponse = (await this.client.createChallenge()).value;
         const challenge = Challenge.from({
             id: CoreId.from(backboneResponse.id),

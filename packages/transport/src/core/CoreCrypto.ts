@@ -8,19 +8,27 @@ import {
     CryptoExchange,
     CryptoExchangeAlgorithm,
     CryptoExchangeKeypair,
+    CryptoExchangeKeypairHandle,
     CryptoExchangePublicKey,
+    CryptoExchangePublicKeyHandle,
     CryptoExchangeSecrets,
     CryptoHashAlgorithm,
     CryptoRandom,
     CryptoSecretKey,
+    CryptoSecretKeyHandle,
     CryptoSignature,
     CryptoSignatureAlgorithm,
     CryptoSignatureKeypair,
+    CryptoSignatureKeypairHandle,
     CryptoSignaturePrivateKey,
+    CryptoSignaturePrivateKeyHandle,
     CryptoSignaturePublicKey,
+    CryptoSignaturePublicKeyHandle,
     CryptoSignatures,
-    Encoding
+    Encoding,
+    ProviderIdentifier
 } from "@nmshd/crypto";
+import { KeyPairSpec, KeySpec } from "@nmshd/rs-crypto-types";
 import { PasswordGenerator } from "../util";
 import { TransportError } from "./TransportError";
 import { TransportVersion } from "./types/TransportVersion";
@@ -82,6 +90,91 @@ export abstract class CoreCrypto {
     }
 
     /**
+     * Generates a handle-based keypair for digital signatures.
+     * Depending on the given version, different algorithms are used:
+     *
+     * v1: ECDSA_ED25519
+     *
+     * @param providerIdent The provider identifier used to generate the keypair.
+     * @param version The version to use, defaults to "latest".
+     * @returns A Promise object resolving into a CryptoSignatureKeypairHandle.
+     */
+    public static async generateSignatureKeypairHandle(
+        providerIdent: ProviderIdentifier,
+        version: TransportVersion = TransportVersion.Latest
+    ): Promise<CryptoSignatureKeypairHandle> {
+        switch (version) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            case TransportVersion.V1:
+                const signatureSpec: KeyPairSpec = {
+                    asym_spec: "Curve25519",
+                    cipher: null,
+                    signing_hash: "Sha2_512",
+                    ephemeral: true,
+                    non_exportable: true
+                };
+                return await CryptoSignatures.generateKeypairHandle(providerIdent, signatureSpec);
+            default:
+                throw this.invalidVersion(version);
+        }
+    }
+
+    /**
+     * Generates a handle-based keypair for key exchange purposes.
+     * Depending on the given version, different algorithms are used:
+     *
+     * v1: ECDH_X25519
+     *
+     * @param providerIdent The provider identifier
+     * @param version The version which should be used, "latest" is the default.
+     * @returns A Promise object resolving into a CryptoExchangeKeypairHandle.
+     */
+    public static async generateExchangeKeypairHandle(
+        providerIdent: ProviderIdentifier,
+        version: TransportVersion = TransportVersion.Latest
+    ): Promise<CryptoExchangeKeypairHandle> {
+        switch (version) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            case TransportVersion.V1:
+                const exchangeSpec: KeyPairSpec = {
+                    asym_spec: "Curve25519",
+                    cipher: null,
+                    signing_hash: "Sha2_512",
+                    ephemeral: true,
+                    non_exportable: true
+                };
+                return await CryptoExchange.generateKeypairHandle(providerIdent, exchangeSpec);
+            default:
+                throw this.invalidVersion(version);
+        }
+    }
+
+    /**
+     * Generates a handle-based secret key for symmetric encryption.
+     * Depending on the given version, different algorithms are used:
+     *
+     * v1: AES256_GCM
+     *
+     * @param providerIdent The provider identifier
+     * @param version The version which should be used, "latest" is the default.
+     * @returns A Promise object resolving into a new CryptoSecretKeyHandle.
+     */
+    public static async generateSecretKeyHandle(providerIdent: ProviderIdentifier, version: TransportVersion = TransportVersion.Latest): Promise<CryptoSecretKeyHandle> {
+        switch (version) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            case TransportVersion.V1:
+                const encryptionSpec: KeySpec = {
+                    cipher: "XChaCha20Poly1305",
+                    ephemeral: true,
+                    signing_hash: "Sha2_512"
+                };
+                return await CryptoEncryption.generateKeyHandle(providerIdent, encryptionSpec);
+            default:
+                throw this.invalidVersion(version);
+        }
+    }
+
+    /**
      * Generates a high entropy key / hash derived from a low entropy human readable/memorable master password, a unique salt,
      * the given symmetric algorithm and the version. Depending on the given version, different key derivation algorithms are used.
      * Careful, the symmetric algorithm possibly needs to be manually changed depending on the version in addition to
@@ -129,7 +222,7 @@ export abstract class CoreCrypto {
     }
 
     public static async deriveKeyFromBase(
-        secret: CryptoSecretKey | CoreBuffer,
+        secret: CryptoSecretKey | CoreBuffer | CryptoSecretKeyHandle,
         keyId: number,
         context: string,
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305
@@ -147,7 +240,7 @@ export abstract class CoreCrypto {
 
     public static async deriveClient(
         client: CryptoExchangeKeypair,
-        serverPublicKey: CryptoExchangePublicKey,
+        serverPublicKey: CryptoExchangePublicKey | CryptoExchangePublicKeyHandle,
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305,
         version: TransportVersion = TransportVersion.Latest
     ): Promise<CryptoExchangeSecrets> {
@@ -163,7 +256,7 @@ export abstract class CoreCrypto {
 
     public static async deriveServer(
         server: CryptoExchangeKeypair,
-        clientPublicKey: CryptoExchangePublicKey,
+        clientPublicKey: CryptoExchangePublicKey | CryptoExchangePublicKeyHandle,
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305,
         version: TransportVersion = TransportVersion.Latest
     ): Promise<CryptoExchangeSecrets> {
@@ -187,7 +280,11 @@ export abstract class CoreCrypto {
      * @param version The version which should be used, "latest" is the default.
      * @returns A Promise object resolving in a [[CryptoSignature]] object.
      */
-    public static async sign(content: CoreBuffer, privateKey: CryptoSignaturePrivateKey, version: TransportVersion = TransportVersion.Latest): Promise<CryptoSignature> {
+    public static async sign(
+        content: CoreBuffer,
+        privateKey: CryptoSignaturePrivateKey | CryptoSignaturePrivateKeyHandle,
+        version: TransportVersion = TransportVersion.Latest
+    ): Promise<CryptoSignature> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
@@ -211,7 +308,7 @@ export abstract class CoreCrypto {
     public static async verify(
         content: CoreBuffer,
         signature: CryptoSignature,
-        publicKey: CryptoSignaturePublicKey,
+        publicKey: CryptoSignaturePublicKey | CryptoSignaturePublicKeyHandle,
         version: TransportVersion = TransportVersion.Latest
     ): Promise<boolean> {
         switch (version) {
@@ -235,7 +332,11 @@ export abstract class CoreCrypto {
      * @param version The version which should be used, "latest" is the default.
      * @returns A Promise object resolving in a [[CryptoCipher]] object.
      */
-    public static async encrypt(content: CoreBuffer, secretKey: CryptoSecretKey, version: TransportVersion = TransportVersion.Latest): Promise<CryptoCipher> {
+    public static async encrypt(
+        content: CoreBuffer,
+        secretKey: CryptoSecretKey | CryptoSecretKeyHandle,
+        version: TransportVersion = TransportVersion.Latest
+    ): Promise<CryptoCipher> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
@@ -257,7 +358,11 @@ export abstract class CoreCrypto {
      * @param version The version which should be used, "latest" is the default.
      * @returns A Promise object resolving with the decrypted content
      */
-    public static async decrypt(cipher: CryptoCipher, secretKey: CryptoSecretKey, version: TransportVersion = TransportVersion.Latest): Promise<CoreBuffer> {
+    public static async decrypt(
+        cipher: CryptoCipher,
+        secretKey: CryptoSecretKey | CryptoSecretKeyHandle,
+        version: TransportVersion = TransportVersion.Latest
+    ): Promise<CoreBuffer> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:

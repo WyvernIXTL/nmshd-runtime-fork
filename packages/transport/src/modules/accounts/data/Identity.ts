@@ -1,10 +1,10 @@
 import { ISerializable, Serializable, serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreAddress } from "@nmshd/core-types";
-import { CryptoSignaturePublicKey, ICryptoSignaturePublicKey } from "@nmshd/crypto";
+import { CryptoSignaturePublicKey, ICryptoSignaturePublicKey, ICryptoSignaturePublicKeyHandle } from "@nmshd/crypto";
 
 export interface IIdentity extends ISerializable {
     address: CoreAddress;
-    publicKey: ICryptoSignaturePublicKey;
+    publicKey: ICryptoSignaturePublicKey | ICryptoSignaturePublicKeyHandle;
 }
 
 @type("Identity")
