@@ -4,6 +4,7 @@ import { CoreDate, CoreId } from "@nmshd/core-types";
 import {
     CoreBuffer,
     CryptoExchangeKeypair,
+    CryptoExchangeKeypairHandle,
     CryptoExchangePrivateKey,
     CryptoExchangePublicKey,
     CryptoRelationshipRequestSecrets,
@@ -67,6 +68,7 @@ export class SecretController extends TransportController {
             | CryptoRelationshipRequestSecrets
             | CryptoRelationshipSecrets
             | CryptoExchangeKeypair
+            | CryptoExchangeKeypairHandle
             | CryptoExchangePrivateKey
             | CryptoSignatureKeypair
             | CryptoSignaturePrivateKey
@@ -202,7 +204,7 @@ export class SecretController extends TransportController {
     }
 
     public async createExchangeKey(name = "", description = "", validTo?: CoreDate): Promise<[CryptoExchangePublicKey, SecretContainerCipher]> {
-        const exchangeKeypair = await CoreCrypto.generateExchangeKeypair();
+        const exchangeKeypair = await CoreCrypto.generateExchangeKeypairHandle({ providerName: "SoftwareProvider" });
         const secretContainer = await this.storeSecret(exchangeKeypair, name, description, validTo);
         return [exchangeKeypair.publicKey, secretContainer];
     }

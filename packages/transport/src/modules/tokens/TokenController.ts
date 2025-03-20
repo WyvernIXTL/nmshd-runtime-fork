@@ -39,7 +39,7 @@ export class TokenController extends TransportController {
 
     public async sendToken(parameters: ISendTokenParameters): Promise<Token> {
         const input = SendTokenParameters.from(parameters);
-        const secretKey = await CoreCrypto.generateSecretKey();
+        const secretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
         const serializedToken = input.content.serialize();
         const serializedTokenBuffer = CoreBuffer.fromUtf8(serializedToken);
 

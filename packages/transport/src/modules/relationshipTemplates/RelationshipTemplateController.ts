@@ -49,7 +49,7 @@ export class RelationshipTemplateController extends TransportController {
             templateKey: templateKey
         });
 
-        const secretKey = await CoreCrypto.generateSecretKey();
+        const secretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
         const serializedTemplate = templateContent.serialize();
         const serializedTemplateBuffer = CoreBuffer.fromUtf8(serializedTemplate);
 

@@ -178,7 +178,7 @@ export class FileController extends TransportController {
         const signature = await this.parent.activeDevice.sign(plaintextHashBuffer);
         const signatureB64 = signature.toBase64();
 
-        const fileDownloadSecretKey = await CoreCrypto.generateSecretKey();
+        const fileDownloadSecretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
         const cipher = await CoreCrypto.encrypt(content, fileDownloadSecretKey);
         const cipherBuffer = CoreBuffer.fromBase64URL(cipher.toBase64());
         const cipherHash = await CryptoHash.hash(cipherBuffer, CryptoHashAlgorithm.SHA512);
@@ -198,7 +198,7 @@ export class FileController extends TransportController {
         const serializedMetadata = metadata.serialize();
 
         const metadataBuffer = CoreBuffer.fromString(serializedMetadata, Encoding.Utf8);
-        const metadataKey = await CoreCrypto.generateSecretKey();
+        const metadataKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
         const metadataCipher = await CoreCrypto.encrypt(metadataBuffer, metadataKey);
 
         const owner = this.parent.identity.address;

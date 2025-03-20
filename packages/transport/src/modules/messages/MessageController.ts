@@ -295,7 +295,7 @@ export class MessageController extends TransportController {
         const validationError = await this.validateMessageRecipients(parsedParams.recipients);
         if (validationError) throw validationError;
 
-        const secret = await CoreCrypto.generateSecretKey();
+        const secret = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
         const serializedSecret = secret.serialize(false);
         const addressArray: ICoreAddress[] = [];
         const envelopeRecipients: MessageEnvelopeRecipient[] = [];

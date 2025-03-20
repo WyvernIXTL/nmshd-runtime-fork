@@ -289,7 +289,7 @@ export class AccountController {
                 identityVersion: this._config.supportedIdentityVersion
             }),
             // Generate Synchronization Root Key
-            CoreCrypto.generateSecretKey(),
+            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" }),
 
             // Generate address locally
             IdentityUtil.createAddress(identityKeypair.publicKey, this._config.addressGenerationHostnameOverride ?? new URL(this._config.baseUrl).hostname),
@@ -364,10 +364,10 @@ export class AccountController {
             // Generate strong device password
             PasswordGenerator.createStrongPassword(45, 50),
             // Generate device keypair
-            CoreCrypto.generateSignatureKeypair(),
+            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
             this.fetchDeviceInfo(),
             // Generate device basekey
-            CoreCrypto.generateSecretKey()
+            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" })
         ]);
 
         const device = Device.from({
