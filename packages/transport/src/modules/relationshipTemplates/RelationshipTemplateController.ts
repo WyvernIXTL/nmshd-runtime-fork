@@ -41,7 +41,7 @@ export class RelationshipTemplateController extends TransportController {
 
     public async sendRelationshipTemplate(parameters: ISendRelationshipTemplateParameters): Promise<RelationshipTemplate> {
         parameters = SendRelationshipTemplateParameters.from(parameters);
-        const templateKey = await this.secrets.createTemplateKey();
+        const templateKey = await this.secrets.createTemplateKeyHandle();
 
         const templateContent = RelationshipTemplateContentWrapper.from({
             content: parameters.content,

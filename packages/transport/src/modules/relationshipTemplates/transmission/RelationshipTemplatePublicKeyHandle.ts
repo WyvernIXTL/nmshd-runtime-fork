@@ -137,9 +137,9 @@ export class RelationshipTemplatePublicKeyHandle extends CryptoSerializableAsync
      *
      * @returns A string containing the PEM-encoded public key.
      */
-    public async toPEM(): Promise<string> {
+    public toPEM(): string {
         // Delegate to the exchangeKey's toPEM method
-        return await this.exchangeKey.toPEM();
+        return this.exchangeKey.toPEM();
     }
 
     /**
