@@ -3,6 +3,7 @@ import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
 import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
 import { CoreCrypto, PasswordProtection, TransportCoreErrors } from "../../core";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { PeerRelationshipTemplateLoadedEvent } from "../../events";
@@ -26,7 +27,7 @@ export class RelationshipTemplateController extends TransportController {
     protected readonly secrets: RelationshipSecretController;
 
     public constructor(parent: AccountController, secrets: RelationshipSecretController, controllerName?: ControllerName) {
-        super(controllerName ? controllerName : ControllerName.RelationshipTemplate, parent);
+        super(controllerName ?? ControllerName.RelationshipTemplate, parent);
         this.secrets = secrets;
         this.client = new RelationshipTemplateClient(this.config, this.parent.authenticator, this.transport.correlator);
     }
@@ -49,7 +50,7 @@ export class RelationshipTemplateController extends TransportController {
             templateKey: templateKey
         });
 
-        const secretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
+        const secretKey = await CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") });
         const serializedTemplate = templateContent.serialize();
         const serializedTemplateBuffer = CoreBuffer.fromUtf8(serializedTemplate);
 

@@ -1,6 +1,14 @@
 import { ISerializable, Serializable, serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, CoreId, ICoreId } from "@nmshd/core-types";
-import { CryptoSecretKey, CryptoSignaturePrivateKey, ICryptoSecretKey, ICryptoSignaturePrivateKey } from "@nmshd/crypto";
+import {
+    CryptoSecretKey,
+    CryptoSecretKeyHandle,
+    CryptoSignaturePrivateKey,
+    ICryptoSecretKey,
+    ICryptoSecretKeyHandle,
+    ICryptoSignaturePrivateKey,
+    ICryptoSignaturePrivateKeyHandle
+} from "@nmshd/crypto";
 import { Identity, IIdentity } from "../../accounts/data/Identity";
 
 export interface IDeviceSharedSecret extends ISerializable {
@@ -10,10 +18,10 @@ export interface IDeviceSharedSecret extends ISerializable {
     name?: string;
     description?: string;
     profileName?: string;
-    secretBaseKey: CryptoSecretKey;
+    secretBaseKey: CryptoSecretKey | CryptoSecretKeyHandle;
     deviceIndex: number;
-    synchronizationKey: ICryptoSecretKey;
-    identityPrivateKey?: ICryptoSignaturePrivateKey;
+    synchronizationKey: ICryptoSecretKey | ICryptoSecretKeyHandle;
+    identityPrivateKey?: ICryptoSignaturePrivateKey | ICryptoSignaturePrivateKeyHandle;
     identity: IIdentity;
     password: string;
     username: string;

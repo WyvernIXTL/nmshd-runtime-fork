@@ -10,7 +10,6 @@ import {
     CryptoExchangeKeypair,
     CryptoExchangeKeypairHandle,
     CryptoExchangePublicKey,
-    CryptoExchangePublicKeyHandle,
     CryptoExchangeSecrets,
     CryptoHashAlgorithm,
     CryptoRandom,
@@ -28,7 +27,7 @@ import {
     Encoding,
     ProviderIdentifier
 } from "@nmshd/crypto";
-import { KeyPairSpec, KeySpec } from "@nmshd/rs-crypto-types";
+import { DHExchange, KeyPairSpec, KeySpec } from "@nmshd/rs-crypto-types";
 import { PasswordGenerator } from "../util";
 import { TransportError } from "./TransportError";
 import { TransportVersion } from "./types/TransportVersion";
@@ -107,11 +106,14 @@ export abstract class CoreCrypto {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
                 const signatureSpec: KeyPairSpec = {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     asym_spec: "Curve25519",
                     cipher: null,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     signing_hash: "Sha2_512",
                     ephemeral: true,
-                    non_exportable: true
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    non_exportable: false
                 };
                 return await CryptoSignatures.generateKeypairHandle(providerIdent, signatureSpec);
             default:
@@ -137,10 +139,13 @@ export abstract class CoreCrypto {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
                 const exchangeSpec: KeyPairSpec = {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     asym_spec: "Curve25519",
                     cipher: null,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     signing_hash: "Sha2_512",
                     ephemeral: true,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     non_exportable: true
                 };
                 return await CryptoExchange.generateKeypairHandle(providerIdent, exchangeSpec);
@@ -165,7 +170,8 @@ export abstract class CoreCrypto {
             case TransportVersion.V1:
                 const encryptionSpec: KeySpec = {
                     cipher: "XChaCha20Poly1305",
-                    ephemeral: true,
+                    ephemeral: false,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
                     signing_hash: "Sha2_512"
                 };
                 return await CryptoEncryption.generateKeyHandle(providerIdent, encryptionSpec);
@@ -190,7 +196,8 @@ export abstract class CoreCrypto {
         password: string,
         salt: CoreBuffer,
         algorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305,
-        version: TransportVersion = TransportVersion.Latest
+        version: TransportVersion = TransportVersion.Latest,
+        provider?: ProviderIdentifier
     ): Promise<CryptoSecretKey> {
         const passwordBuffer = CoreBuffer.fromString(password, Encoding.Utf8);
 
@@ -202,17 +209,22 @@ export abstract class CoreCrypto {
                 // environments like Connectors. Thus, we cannot expect high end pcs to make the pw derivation.
                 const opslimit = 3;
                 const memlimit = 20 * 1024 * 1024; // 20MB
-                return await CryptoDerivation.deriveKeyFromPassword(passwordBuffer, salt, algorithm, CryptoDerivationAlgorithm.ARGON2ID, opslimit, memlimit);
+                return await CryptoDerivation.deriveKeyFromPassword(passwordBuffer, salt, algorithm, CryptoDerivationAlgorithm.ARGON2ID, opslimit, memlimit, provider);
             default:
                 throw this.invalidVersion(version);
         }
     }
 
-    public static async deriveHashOutOfPassword(password: string, salt: CoreBuffer, version: TransportVersion = TransportVersion.Latest): Promise<CoreBuffer> {
+    public static async deriveHashOutOfPassword(
+        password: string,
+        salt: CoreBuffer,
+        version: TransportVersion = TransportVersion.Latest,
+        provider?: ProviderIdentifier
+    ): Promise<CoreBuffer> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
-                const pwhash = await this.deriveKeyFromPassword(password, salt);
+                const pwhash = await this.deriveKeyFromPassword(password, salt, undefined, version, provider);
 
                 // No pepper required, as even the salt is not stored in the Backbone
                 return pwhash.secretKey;
@@ -228,7 +240,10 @@ export abstract class CoreCrypto {
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305
     ): Promise<CryptoSecretKey> {
         let buffer;
-        if (secret instanceof CryptoSecretKey) {
+        if (secret instanceof CryptoSecretKeyHandle) {
+            buffer = CoreBuffer.from(await secret.keyHandle.extractKey());
+            return await CryptoDerivation.deriveKeyFromBase(buffer, keyId, context, keyAlgorithm, { providerName: secret.providerName });
+        } else if (secret instanceof CryptoSecretKey) {
             buffer = secret.secretKey;
         } else if (secret instanceof CoreBuffer) {
             buffer = secret;
@@ -239,8 +254,8 @@ export abstract class CoreCrypto {
     }
 
     public static async deriveClient(
-        client: CryptoExchangeKeypair,
-        serverPublicKey: CryptoExchangePublicKey | CryptoExchangePublicKeyHandle,
+        client: CryptoExchangeKeypair | DHExchange,
+        serverPublicKey: CryptoExchangePublicKey | Uint8Array,
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305,
         version: TransportVersion = TransportVersion.Latest
     ): Promise<CryptoExchangeSecrets> {
@@ -255,8 +270,8 @@ export abstract class CoreCrypto {
     }
 
     public static async deriveServer(
-        server: CryptoExchangeKeypair,
-        clientPublicKey: CryptoExchangePublicKey | CryptoExchangePublicKeyHandle,
+        server: CryptoExchangeKeypair | DHExchange,
+        clientPublicKey: CryptoExchangePublicKey | Uint8Array,
         keyAlgorithm: CryptoEncryptionAlgorithm = CryptoEncryptionAlgorithm.XCHACHA20_POLY1305,
         version: TransportVersion = TransportVersion.Latest
     ): Promise<CryptoExchangeSecrets> {
@@ -335,12 +350,13 @@ export abstract class CoreCrypto {
     public static async encrypt(
         content: CoreBuffer,
         secretKey: CryptoSecretKey | CryptoSecretKeyHandle,
-        version: TransportVersion = TransportVersion.Latest
+        version: TransportVersion = TransportVersion.Latest,
+        provider?: ProviderIdentifier
     ): Promise<CryptoCipher> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
-                return await CryptoEncryption.encrypt(content, secretKey);
+                return await CryptoEncryption.encrypt(content, secretKey, undefined, undefined, provider);
             default:
                 throw this.invalidVersion(version);
         }

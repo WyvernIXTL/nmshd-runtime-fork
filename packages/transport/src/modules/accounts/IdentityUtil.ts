@@ -1,11 +1,29 @@
 import { CoreAddress } from "@nmshd/core-types";
-import { CoreBuffer, CryptoHash, CryptoHashAlgorithm, Encoding, ICryptoSignaturePublicKey, ICryptoSignaturePublicKeyHandle } from "@nmshd/crypto";
+import {
+    CoreBuffer,
+    CryptoHash,
+    CryptoHashAlgorithm,
+    CryptoSignaturePublicKey,
+    CryptoSignaturePublicKeyHandle,
+    Encoding,
+    ICryptoSignaturePublicKey,
+    ICryptoSignaturePublicKeyHandle
+} from "@nmshd/crypto";
 
 const enmeshedAddressDIDPrefix = "did:e:";
 
 export class IdentityUtil {
     public static async createAddress(publicKey: ICryptoSignaturePublicKey | ICryptoSignaturePublicKeyHandle, backboneHostname: string): Promise<CoreAddress> {
-        const sha512buffer = await CryptoHash.hash(CoreBuffer.from(publicKey), CryptoHashAlgorithm.SHA512);
+        let buffer;
+        if (publicKey instanceof CryptoSignaturePublicKey) {
+            buffer = publicKey.publicKey;
+        } else if (publicKey instanceof CryptoSignaturePublicKeyHandle) {
+            buffer = CoreBuffer.from(await publicKey.keyPairHandle.getPublicKey());
+        } else {
+            throw new Error("Unknown object.");
+        }
+
+        const sha512buffer = await CryptoHash.hash(buffer, CryptoHashAlgorithm.SHA512, { providerName: "SoftwareProvider" });
         const hash = await CryptoHash.hash(sha512buffer, CryptoHashAlgorithm.SHA256);
         const hashedPublicKey = new CoreBuffer(hash.buffer.slice(0, 10));
         const identityPart = hashedPublicKey.toString(Encoding.Hex);

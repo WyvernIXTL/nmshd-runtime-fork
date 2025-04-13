@@ -386,9 +386,7 @@ export class RelationshipsController extends TransportController {
     }
 
     private async updateCacheOfRelationship(relationship: Relationship, response?: BackboneRelationship) {
-        if (!response) {
-            response = (await this.client.getRelationship(relationship.id.toString())).value;
-        }
+        response ??= (await this.client.getRelationship(relationship.id.toString())).value;
 
         const cachedRelationship = await this.decryptRelationship(response, relationship.relationshipSecretId);
 
@@ -584,6 +582,7 @@ export class RelationshipsController extends TransportController {
         }
 
         let backboneResponse: BackbonePutRelationshipsResponse;
+        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
         switch (operation) {
             case RelationshipAuditLogEntryReason.AcceptanceOfCreation:
                 const encryptedContent = await this.prepareCreationResponseContent(relationship);
@@ -632,6 +631,7 @@ export class RelationshipsController extends TransportController {
 
     private publishEventAfterCompletedOperation(operation: RelationshipAuditLogEntryReason, relationship: Relationship) {
         this.eventBus.publish(new RelationshipChangedEvent(this.parent.identity.address.toString(), relationship));
+        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
         switch (operation) {
             case RelationshipAuditLogEntryReason.ReactivationRequested:
                 this.eventBus.publish(new RelationshipReactivationRequestedEvent(this.parent.identity.address.toString(), relationship));

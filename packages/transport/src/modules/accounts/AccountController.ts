@@ -2,9 +2,10 @@ import { IDatabaseCollection, IDatabaseCollectionProvider, IDatabaseMap } from "
 import { ILogger } from "@js-soft/logging-abstractions";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CryptoSecretKey } from "@nmshd/crypto";
+import { CryptoSecretKey, CryptoSignaturePublicKey } from "@nmshd/crypto";
 import { AbstractAuthenticator, Authenticator, ControllerName, IConfig, Transport, TransportCoreErrors, TransportError } from "../../core";
 import { CoreCrypto } from "../../core/CoreCrypto";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { DependencyOverrides } from "../../core/DependencyOverrides";
 import { TransportLoggerFactory } from "../../core/TransportLoggerFactory";
@@ -177,7 +178,7 @@ export class AccountController {
 
         if (identityCreated) {
             await this.devices.addExistingDevice(device!);
-            await this.synchronization.setInititalDatawalletVersion(this._config.supportedDatawalletVersion);
+            await this.synchronization.setInitialDatawalletVersion(this._config.supportedDatawalletVersion);
         } else if (deviceUpdated) {
             await this.syncDatawallet();
             await this.devices.update(device!);
@@ -262,15 +263,15 @@ export class AccountController {
     private async createIdentityAndDevice(): Promise<{ identity: Identity; device: Device }> {
         const [identityKeypair, devicePwdD1, deviceKeypair, privBaseShared, privBaseDevice] = await Promise.all([
             // Generate identity keypair
-            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
+            CoreCrypto.generateSignatureKeypairHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "signature", "default") }),
             // Generate strong device password
             PasswordGenerator.createStrongPassword(45, 50),
             // Generate device keypair
-            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
+            CoreCrypto.generateSignatureKeypairHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "signature", "deviceKeyPair") }),
             // Generate Shared Base Key
-            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" }),
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "default") }),
             // Generate Device Base Key
-            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" })
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "deviceSecretBaseKey") })
         ]);
         this._log.trace("Created keys. Requesting challenge...");
 
@@ -278,18 +279,20 @@ export class AccountController {
         const signedChallenge = await this.challenges.createAccountCreationChallenge(identityKeypair);
         this._log.trace("Challenge signed. Creating device...");
 
+        const identityPubKey = await CryptoSignaturePublicKey.fromHandle(identityKeypair.publicKey);
+
         const [createIdentityResponse, privSync, localAddress, deviceInfo] = await Promise.all([
             // Register first device (and identity) on backbone
             this.identityClient.createIdentity({
                 devicePassword: devicePwdD1,
-                identityPublicKey: identityKeypair.publicKey.toBase64(),
+                identityPublicKey: identityPubKey.toBase64(),
                 signedChallenge: signedChallenge.toJSON(false),
                 clientId: this._config.platformClientId,
                 clientSecret: this._config.platformClientSecret,
                 identityVersion: this._config.supportedIdentityVersion
             }),
             // Generate Synchronization Root Key
-            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" }),
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "default") }),
 
             // Generate address locally
             IdentityUtil.createAddress(identityKeypair.publicKey, this._config.addressGenerationHostnameOverride ?? new URL(this._config.baseUrl).hostname),
@@ -313,7 +316,7 @@ export class AccountController {
 
         const identity = Identity.from({
             address: CoreAddress.from(createdIdentity.address),
-            publicKey: identityKeypair.publicKey
+            publicKey: identityPubKey
         });
 
         const deviceId = CoreId.from(createdIdentity.device.id);
@@ -325,7 +328,7 @@ export class AccountController {
             name: "Device 1",
             lastLoginAt: CoreDate.utc(),
             operatingSystem: deviceInfo.operatingSystem,
-            publicKey: deviceKeypair.publicKey,
+            publicKey: await CryptoSignaturePublicKey.fromHandle(deviceKeypair.publicKey),
             type: deviceInfo.type,
             certificate: "",
             username: createdIdentity.device.username,
@@ -364,15 +367,15 @@ export class AccountController {
             // Generate strong device password
             PasswordGenerator.createStrongPassword(45, 50),
             // Generate device keypair
-            CoreCrypto.generateSignatureKeypairHandle({ providerName: "SoftwareProvider" }),
+            CoreCrypto.generateSignatureKeypairHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "signature", "deviceKeyPair") }),
             this.fetchDeviceInfo(),
             // Generate device basekey
-            CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" })
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "deviceSecretBaseKey") })
         ]);
 
         const device = Device.from({
             id: deviceSharedSecret.id,
-            name: deviceSharedSecret.name ? deviceSharedSecret.name : "",
+            name: deviceSharedSecret.name ?? "",
             description: deviceSharedSecret.description,
             lastLoginAt: CoreDate.utc(),
             createdAt: deviceSharedSecret.createdAt,

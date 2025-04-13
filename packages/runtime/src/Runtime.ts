@@ -13,12 +13,12 @@ import {
     SettingsController
 } from "@nmshd/consumption";
 import { ICoreAddress } from "@nmshd/core-types";
+import { CryptoLayerConfig } from "@nmshd/crypto";
 import {
     AccountController,
     AnonymousTokenController,
     BackboneCompatibilityController,
     ChallengeController,
-    CryptoLayerConfig,
     DeviceController,
     DevicesController,
     FileController,
@@ -116,7 +116,7 @@ export abstract class Runtime<TConfig extends RuntimeConfig = RuntimeConfig> {
         protected loggerFactory: ILoggerFactory,
         eventBus?: EventBus,
         protected correlator?: AbstractCorrelator,
-        protected cryptoLayerConfig?: CryptoLayerConfig,
+        protected cryptoLayerConfig?: CryptoLayerConfig
     ) {
         this._logger = this.loggerFactory.getLogger(this.constructor.name);
 
@@ -189,7 +189,19 @@ export abstract class Runtime<TConfig extends RuntimeConfig = RuntimeConfig> {
             this.logger.error(`An error was thrown in an event handler of the transport event bus (namespace: '${namespace}'). Root error: ${error}`);
         });
 
-        this.transport = new Transport(databaseConnection, transportConfig, eventBus, this.loggerFactory, this.correlator, this.cryptoLayerConfig);
+        this.transport = new Transport(
+            databaseConnection,
+            transportConfig,
+            eventBus,
+            this.loggerFactory,
+            this.correlator,
+            this.cryptoLayerConfig
+                ? {
+                      config: this.cryptoLayerConfig,
+                      initializeAllAvailableProviders: true
+                  }
+                : undefined
+        );
 
         this.logger.debug("Initializing Transport Library...");
         await this.transport.init();
@@ -456,7 +468,7 @@ export abstract class Runtime<TConfig extends RuntimeConfig = RuntimeConfig> {
                 await module.stop();
                 this.logger.info(`Module '${this.getModuleName(module)}' was stopped successfully.`);
             } catch (e) {
-                this.logger.error(`An Error occured while stopping module '${this.getModuleName(module)}': `, e);
+                this.logger.error(`An Error occurred while stopping module '${this.getModuleName(module)}': `, e);
             }
         }
 

@@ -351,7 +351,7 @@ export class SyncController extends TransportController {
         }
     }
 
-    public async setInititalDatawalletVersion(version: number): Promise<void> {
+    public async setInitialDatawalletVersion(version: number): Promise<void> {
         await this.startDatawalletVersionUpgradeSyncRun();
         await this.finalizeDatawalletVersionUpgradeSyncRun(version);
     }

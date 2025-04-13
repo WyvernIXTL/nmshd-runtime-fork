@@ -34,7 +34,7 @@ export interface IRelationshipTemplatePublicKeyHandle extends ISerializable, ICr
     /**
      * An optional ID for the template.
      */
-    id: string;
+    id: ICoreId;
     /**
      * Algorithm of the public key, inherited from ICryptoExchangePublicKey.
      */
@@ -62,7 +62,7 @@ export class RelationshipTemplatePublicKeyHandle extends CryptoSerializableAsync
      */
     @validate({ nullable: true })
     @serialize()
-    public id: string;
+    public id: ICoreId;
 
     /**
      * The exchange public key handle.

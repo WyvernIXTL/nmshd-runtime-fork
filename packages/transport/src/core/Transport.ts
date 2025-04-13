@@ -2,10 +2,11 @@ import { IDatabaseCollectionProvider, IDatabaseConnection } from "@js-soft/docdb
 import { ILogger, ILoggerFactory } from "@js-soft/logging-abstractions";
 import { SimpleLoggerFactory } from "@js-soft/simple-logger";
 import { EventBus } from "@js-soft/ts-utils";
-import { SodiumWrapper, CryptoLayerConfig, initCryptoLayerProviders } from "@nmshd/crypto";
+import { CryptoLayerConfig, initCryptoLayerProviders, SodiumWrapper } from "@nmshd/crypto";
 import { AgentOptions } from "http";
 import { AgentOptions as HTTPSAgentOptions } from "https";
 import _ from "lodash";
+import { ALL_CRYPTO_PROVIDERS } from "./CryptoProviderMapping";
 import { ICorrelator } from "./ICorrelator";
 import { TransportCoreErrors } from "./TransportCoreErrors";
 import { TransportError } from "./TransportError";
@@ -54,6 +55,9 @@ export class Transport {
     private readonly databaseConnection: IDatabaseConnection;
 
     private readonly _config: IConfig;
+
+    private calInitialized: boolean;
+
     public get config(): IConfig {
         return this._config;
     }
@@ -90,7 +94,7 @@ export class Transport {
         public readonly correlator?: ICorrelator,
         public readonly cryptoLayer?: {
             config: CryptoLayerConfig;
-            // initializeAllAvailableProviders: boolean;
+            initializeAllAvailableProviders: boolean;
         }
     ) {
         this.databaseConnection = databaseConnection;
@@ -128,10 +132,16 @@ export class Transport {
         log.trace("Initializing Libsodium...");
         const sodium = SodiumWrapper.ready();
 
-        if (this.cryptoLayer) {
+        if (this.cryptoLayer && !this.calInitialized) {
             log.trace("Initializing Crypto Layer...");
+            if (this.cryptoLayer.initializeAllAvailableProviders) {
+                this.cryptoLayer.config.providersToBeInitialized = ALL_CRYPTO_PROVIDERS.map((name) => ({
+                    providerName: name
+                }));
+            }
             await initCryptoLayerProviders(this.cryptoLayer.config);
             log.trace("Crypto Layer initialized");
+            this.calInitialized = true;
         }
 
         await sodium;

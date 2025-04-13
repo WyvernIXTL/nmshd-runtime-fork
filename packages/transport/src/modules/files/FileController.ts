@@ -3,6 +3,7 @@ import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
 import { CoreBuffer, CryptoCipher, CryptoHash, CryptoHashAlgorithm, CryptoSecretKey, Encoding } from "@nmshd/crypto";
 import { CoreCrypto, CoreHash, TransportCoreErrors } from "../../core";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { AccountController } from "../accounts/AccountController";
@@ -95,9 +96,7 @@ export class FileController extends TransportController {
 
     private async updateCacheOfFile(file: File, response?: BackboneGetFilesResponse) {
         const fileId = file.id.toString();
-        if (!response) {
-            response = (await this.client.getFile(fileId)).value;
-        }
+        response ??= (await this.client.getFile(fileId)).value;
 
         const cachedFile = await this.decryptFile(response, file.secretKey);
         file.setCache(cachedFile);
@@ -178,7 +177,7 @@ export class FileController extends TransportController {
         const signature = await this.parent.activeDevice.sign(plaintextHashBuffer);
         const signatureB64 = signature.toBase64();
 
-        const fileDownloadSecretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
+        const fileDownloadSecretKey = await CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") });
         const cipher = await CoreCrypto.encrypt(content, fileDownloadSecretKey);
         const cipherBuffer = CoreBuffer.fromBase64URL(cipher.toBase64());
         const cipherHash = await CryptoHash.hash(cipherBuffer, CryptoHashAlgorithm.SHA512);
@@ -198,7 +197,7 @@ export class FileController extends TransportController {
         const serializedMetadata = metadata.serialize();
 
         const metadataBuffer = CoreBuffer.fromString(serializedMetadata, Encoding.Utf8);
-        const metadataKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
+        const metadataKey = await CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") });
         const metadataCipher = await CoreCrypto.encrypt(metadataBuffer, metadataKey);
 
         const owner = this.parent.identity.address;

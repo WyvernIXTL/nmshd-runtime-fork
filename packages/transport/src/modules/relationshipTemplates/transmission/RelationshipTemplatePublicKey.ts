@@ -27,7 +27,7 @@ export interface IRelationshipTemplatePublicKeySerialized extends ISerialized {
  * Extends ICryptoExchangePublicKey to maintain compatibility.
  */
 export interface IRelationshipTemplatePublicKey extends ISerializable, ICryptoExchangePublicKey {
-    id: string;
+    id: ICoreId;
 }
 
 /**
@@ -37,7 +37,7 @@ export interface IRelationshipTemplatePublicKey extends ISerializable, ICryptoEx
 export class RelationshipTemplatePublicKeyWithLibsodium extends CryptoSerializable implements IRelationshipTemplatePublicKey, IClearable {
     @validate({ nullable: true })
     @serialize()
-    public id: string;
+    public id: ICoreId;
 
     @validate()
     @serialize()

@@ -3,6 +3,7 @@ import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
 import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
 import { CoreCrypto, TransportCoreErrors, TransportError } from "../../core";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { PasswordProtection } from "../../core/types/PasswordProtection";
@@ -39,7 +40,7 @@ export class TokenController extends TransportController {
 
     public async sendToken(parameters: ISendTokenParameters): Promise<Token> {
         const input = SendTokenParameters.from(parameters);
-        const secretKey = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
+        const secretKey = await CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") });
         const serializedToken = input.content.serialize();
         const serializedTokenBuffer = CoreBuffer.fromUtf8(serializedToken);
 
@@ -47,7 +48,7 @@ export class TokenController extends TransportController {
 
         const password = parameters.passwordProtection?.password;
         const salt = password ? await CoreCrypto.random(16) : undefined;
-        const hashedPassword = password ? (await CoreCrypto.deriveHashOutOfPassword(password, salt!)).toBase64() : undefined;
+        const hashedPassword = password ? (await CoreCrypto.deriveHashOutOfPassword(password, salt!, undefined, { providerName: secretKey.providerName })).toBase64() : undefined;
 
         const response = (
             await this.client.createToken({

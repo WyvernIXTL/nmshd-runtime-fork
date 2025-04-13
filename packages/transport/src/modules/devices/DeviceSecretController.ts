@@ -6,10 +6,13 @@ import {
     CoreBuffer,
     CryptoCipher,
     CryptoExchangeKeypair,
+    CryptoExchangeKeypairHandle,
     CryptoExchangePrivateKey,
+    CryptoExchangePrivateKeyHandle,
     CryptoSecretKey,
     CryptoSecretKeyHandle,
     CryptoSignatureKeypair,
+    CryptoSignatureKeypairHandle,
     CryptoSignaturePrivateKey,
     CryptoSignaturePrivateKeyHandle
 } from "@nmshd/crypto";
@@ -62,8 +65,11 @@ export class DeviceSecretController extends TransportController {
         secret:
             | DeviceSecretCredentials
             | CryptoExchangeKeypair
+            | CryptoExchangeKeypairHandle
             | CryptoExchangePrivateKey
+            | CryptoExchangePrivateKeyHandle
             | CryptoSignatureKeypair
+            | CryptoSignatureKeypairHandle
             | CryptoSignaturePrivateKey
             | CryptoSecretKey
             | CryptoSecretKeyHandle
@@ -139,12 +145,19 @@ export class DeviceSecretController extends TransportController {
             throw TransportCoreErrors.secrets.secretNotFound("baseKey");
         }
 
-        let identityPrivateKey;
+        // Declare the variable that will hold the correctly typed secret
+        let actualIdentityPrivateKey: CryptoSignaturePrivateKey | CryptoSignaturePrivateKeyHandle | undefined = undefined;
+
         if (includeIdentityPrivateKey) {
-            identityPrivateKey = await this.loadSecret(DeviceSecretType.IdentitySignature);
-            if (!identityPrivateKey || !(identityPrivateKey.secret instanceof CryptoSignaturePrivateKey)) {
+            const identityPrivateKeyContainer = await this.loadSecret(DeviceSecretType.IdentitySignature);
+            // Perform the check
+            if (
+                !identityPrivateKeyContainer ||
+                !(identityPrivateKeyContainer.secret instanceof CryptoSignaturePrivateKey || identityPrivateKeyContainer.secret instanceof CryptoSignaturePrivateKeyHandle)
+            ) {
                 throw TransportCoreErrors.secrets.secretNotFound("IdentityKey");
             }
+            actualIdentityPrivateKey = identityPrivateKeyContainer.secret;
         }
 
         const deviceSharedSecret = DeviceSharedSecret.from({
@@ -157,7 +170,7 @@ export class DeviceSecretController extends TransportController {
             description: device.description,
             profileName,
             synchronizationKey: synchronizationKey.secret,
-            identityPrivateKey: identityPrivateKey?.secret as unknown as CryptoSignaturePrivateKey,
+            identityPrivateKey: actualIdentityPrivateKey,
             username: device.username,
             password: device.initialPassword!,
             identity: this.parent.identity.identity
@@ -174,14 +187,22 @@ export class DeviceSecretController extends TransportController {
 
         const serializedEvent = CoreBuffer.fromUtf8(JSON.stringify(event.payload));
         const privSync = await this.loadSecret(DeviceSecretType.IdentitySynchronizationMaster);
-        if (!privSync || !(privSync.secret instanceof CryptoSecretKey || privSync.secret instanceof CryptoSecretKeyHandle)) {
+        if (!privSync || !(privSync.secret instanceof CryptoSecretKey || privSync instanceof CryptoSecretKeyHandle)) {
             throw TransportCoreErrors.secrets.secretNotFound(DeviceSecretType.IdentitySynchronizationMaster);
         }
 
-        const encryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
+        let encryptionKey: CryptoSecretKey;
+        if (privSync.secret instanceof CryptoSecretKey || privSync.secret instanceof CoreBuffer) {
+            encryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
+            CryptoSecretKey.from(privSync.secret).clear();
+        } else if (privSync instanceof CryptoSecretKeyHandle) {
+            encryptionKey = await CoreCrypto.deriveKeyFromBase(privSync, index, "DataSync");
+            CryptoSecretKey.from(privSync).clear();
+        } else {
+            throw TransportCoreErrors.secrets.secretNotFound(DeviceSecretType.IdentitySynchronizationMaster);
+        }
 
         const cipher = await CoreCrypto.encrypt(serializedEvent, encryptionKey);
-        CryptoSecretKey.from(privSync.secret).clear();
         return cipher.toBase64();
     }
 
@@ -194,17 +215,23 @@ export class DeviceSecretController extends TransportController {
         const payloadCipher = CryptoCipher.fromBase64(payloadCipherBase64);
 
         const privSync = await this.loadSecret(DeviceSecretType.IdentitySynchronizationMaster);
-        if (!privSync || !(privSync.secret instanceof CryptoSecretKey || privSync.secret instanceof CryptoSecretKeyHandle)) {
+        if (!privSync || !(privSync.secret instanceof CryptoSecretKey || privSync instanceof CryptoSecretKeyHandle)) {
             throw TransportCoreErrors.secrets.secretNotFound(DeviceSecretType.IdentitySynchronizationMaster);
         }
 
-        const decryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
+        let decryptionKey: CryptoSecretKey;
+        if (privSync.secret instanceof CryptoSecretKey || privSync.secret instanceof CoreBuffer) {
+            decryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
+            CryptoSecretKey.from(privSync.secret).clear();
+        } else if (privSync instanceof CryptoSecretKeyHandle) {
+            decryptionKey = await CoreCrypto.deriveKeyFromBase(privSync, index, "DataSync");
+            CryptoSecretKey.from(privSync).clear();
+        } else {
+            throw TransportCoreErrors.secrets.secretNotFound(DeviceSecretType.IdentitySynchronizationMaster);
+        }
 
         const plaintext = await CoreCrypto.decrypt(payloadCipher, decryptionKey);
-        CryptoSecretKey.from(privSync.secret).clear();
-
         const deserializedObject = JSON.parse(plaintext.toUtf8());
-
         return deserializedObject;
     }
 

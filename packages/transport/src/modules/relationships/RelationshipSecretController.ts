@@ -98,10 +98,8 @@ export class RelationshipSecretController extends SecretController {
         }
 
         if (secret.secret instanceof CryptoRelationshipSecrets) {
-            // Now the compiler knows secret.secret is a CryptoRelationshipSecrets
             return (secret.secret as CryptoRelationshipSecrets).toPublicResponse();
         } else if (secret.secret instanceof CryptoRelationshipSecretsHandle) {
-            // Now the compiler knows secret.secret is a CryptoRelationshipSecretsHandle
             return CryptoRelationshipPublicResponse.from((secret.secret as CryptoRelationshipSecretsHandle).toPublicResponse());
         }
         throw TransportCoreErrors.secrets.wrongSecretType(secret.id.toString());
@@ -179,7 +177,7 @@ export class RelationshipSecretController extends SecretController {
         const key = await this.createExchangeKeyHandle(`${templateKeyId.toString()}`);
         const publicKey = key[0];
         return await RelationshipTemplatePublicKeyHandle.from({
-            id: templateKeyId.toString(),
+            id: templateKeyId,
             algorithm: CryptoExchangeAlgorithm.ECDH_P256,
             publicKey: CoreBuffer.from(publicKey)
         });
@@ -190,7 +188,7 @@ export class RelationshipSecretController extends SecretController {
         const key = await this.createExchangeKey(`${templateKeyId.toString()}`);
         const publicKey = key[0];
         return RelationshipTemplatePublicKey.from({
-            id: templateKeyId.toString(),
+            id: templateKeyId,
             algorithm: publicKey.algorithm,
             publicKey: publicKey.publicKey
         });

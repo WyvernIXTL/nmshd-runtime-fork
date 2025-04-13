@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-in-test */
 import { IDatabaseConnection } from "@js-soft/docdb-access-abstractions";
 import { CryptoExchangeKeypair, CryptoSecretKey, CryptoSignatureKeypair } from "@nmshd/crypto";
 import { AccountController, CoreCrypto, SecretContainerPlain, SecretController, Transport } from "../../../src";
@@ -90,19 +91,19 @@ describe("SecretController", function () {
             expect(secret.secret).toBeDefined();
 
             if (secret.secret instanceof CryptoSignatureKeypair) {
-                const loadedSecret = secret.secret;
+                const loadedSecret = secret.secret as CryptoSignatureKeypair;
                 // eslint-disable-next-line jest/no-conditional-expect
                 expect(loadedSecret.privateKey.toBase64()).toStrictEqual(signatureKeypair.privateKey.toBase64());
                 // eslint-disable-next-line jest/no-conditional-expect
                 expect(loadedSecret.publicKey.toBase64()).toStrictEqual(signatureKeypair.publicKey.toBase64());
             } else if (secret.secret instanceof CryptoExchangeKeypair) {
-                const loadedSecret = secret.secret;
+                const loadedSecret = secret.secret as CryptoExchangeKeypair;
                 // eslint-disable-next-line jest/no-conditional-expect
                 expect(loadedSecret.privateKey.toBase64()).toStrictEqual(exchangeKeypair.privateKey.toBase64());
                 // eslint-disable-next-line jest/no-conditional-expect
                 expect(loadedSecret.publicKey.toBase64()).toStrictEqual(exchangeKeypair.publicKey.toBase64());
             } else if (secret.secret instanceof CryptoSecretKey) {
-                const loadedSecret = secret.secret;
+                const loadedSecret = secret.secret as CryptoSecretKey;
                 // eslint-disable-next-line jest/no-conditional-expect
                 expect(loadedSecret.secretKey.toBase64()).toStrictEqual(secretKey.secretKey.toBase64());
             } else {

@@ -10,3 +10,4 @@ _archive
 .idea
 coverage
 .nyc_output
+test_*cal_db

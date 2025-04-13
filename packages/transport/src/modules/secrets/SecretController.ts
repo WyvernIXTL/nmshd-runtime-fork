@@ -16,6 +16,7 @@ import {
     CryptoSignaturePrivateKey
 } from "@nmshd/crypto";
 import { CoreCrypto, TransportCoreErrors, TransportIds } from "../../core";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { AccountController } from "../accounts/AccountController";
@@ -164,7 +165,7 @@ export class SecretController extends TransportController {
 
     private async decryptSecret(secret: SecretContainerCipher): Promise<SecretContainerPlain> {
         const baseKey = await this.getBaseKey();
-        const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, secret.nonce ? secret.nonce : 0, SecretController.secretContext);
+        const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, secret.nonce ?? 0, SecretController.secretContext);
         const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
         const plainString = plainBuffer.toUtf8();
         const decryptedSecret = Serializable.deserializeUnknown(plainString);
@@ -211,7 +212,7 @@ export class SecretController extends TransportController {
     }
 
     public async createExchangeKeyHandle(name = "", description = "", validTo?: CoreDate): Promise<[CryptoExchangePublicKeyHandle, SecretContainerCipher]> {
-        const exchangeKeypair = await CoreCrypto.generateExchangeKeypairHandle({ providerName: "SoftwareProvider" });
+        const exchangeKeypair = await CoreCrypto.generateExchangeKeypairHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "exchange") });
         const secretContainer = await this.storeSecret(exchangeKeypair, name, description, validTo);
         return [exchangeKeypair.publicKey, secretContainer];
     }

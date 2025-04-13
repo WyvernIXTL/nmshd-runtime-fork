@@ -9,6 +9,7 @@ import { ISerializable, Serializable } from "@js-soft/ts-serval";
 import { EventEmitter2EventBus, sleep } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
 import { CoreBuffer } from "@nmshd/crypto";
+import { createProvider, createProviderFromName, getAllProviders, getProviderCapabilities } from "@nmshd/rs-crypto-node";
 import fs from "fs";
 import { DurationLike } from "luxon";
 import path from "path";
@@ -158,11 +159,28 @@ export class TestUtil {
     }
 
     public static createTransport(connection: IDatabaseConnection, configOverwrite: Partial<IConfigOverwrite> = {}, correlator?: ICorrelator): Transport {
+        const randomDigits = Math.floor(Math.random() * 1000)
+            .toString()
+            .padStart(3, "0");
+        const dynamicDbDir = `./test_${randomDigits}_cal_db`;
+
+        const calConfig = {
+            factoryFunctions: { getAllProviders, createProvider, createProviderFromName, getProviderCapabilities },
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            keyMetadataStoreConfig: { FileStoreConfig: { db_dir: dynamicDbDir } },
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            keyMetadataStoreAuth: { StorageConfigPass: "12345678" },
+            providersToBeInitialized: []
+        };
+
         const eventBus = TestUtil.createEventBus();
 
         const config = TestUtil.createConfig();
 
-        return new Transport(connection, { ...config, ...configOverwrite }, eventBus, TestUtil.loggerFactory, correlator);
+        return new Transport(connection, { ...config, ...configOverwrite }, eventBus, TestUtil.loggerFactory, correlator, {
+            config: calConfig,
+            initializeAllAvailableProviders: true
+        });
     }
 
     public static createEventBus(): EventEmitter2EventBus {
@@ -200,7 +218,7 @@ export class TestUtil {
     }
 
     public static async createIdentityWithOneDevice(connection: IDatabaseConnection, config: Partial<IConfigOverwrite>): Promise<AccountController> {
-        const transport = TestUtil.createTransport(connection, config);
+        const transport = TestUtil.createTransport(connection, config, undefined);
 
         await transport.init();
         const deviceAccount = await TestUtil.createAccount(transport);
@@ -215,7 +233,7 @@ export class TestUtil {
         device2: AccountController;
     }> {
         // Create Device1 Controller    transport = TestUtil.createTransport(connection);
-        const transport = TestUtil.createTransport(connection, config);
+        const transport = TestUtil.createTransport(connection, config, undefined);
 
         await transport.init();
         const device1Account = await TestUtil.createAccount(transport);
@@ -542,11 +560,9 @@ export class TestUtil {
     }
 
     public static async sendRelationshipTemplate(from: AccountController, body?: ISerializable): Promise<RelationshipTemplate> {
-        if (!body) {
-            body = {
-                content: "template"
-            };
-        }
+        body ??= {
+            content: "template"
+        };
         return await from.relationshipTemplates.sendRelationshipTemplate({
             content: body,
             expiresAt: CoreDate.utc().add({ minutes: 5 }),
@@ -555,11 +571,9 @@ export class TestUtil {
     }
 
     public static async sendRelationshipTemplateAndToken(account: AccountController, body?: ISerializable): Promise<string> {
-        if (!body) {
-            body = {
-                content: "template"
-            };
-        }
+        body ??= {
+            content: "template"
+        };
         const template = await account.relationshipTemplates.sendRelationshipTemplate({
             content: body,
             expiresAt: CoreDate.utc().add({ minutes: 5 }),
@@ -581,11 +595,9 @@ export class TestUtil {
     }
 
     public static async sendRelationship(account: AccountController, template: RelationshipTemplate, body?: ISerializable): Promise<Relationship> {
-        if (!body) {
-            body = {
-                content: "request"
-            };
-        }
+        body ??= {
+            content: "request"
+        };
         return await account.relationships.sendRelationship({
             template: template,
             creationContent: body
@@ -620,9 +632,7 @@ export class TestUtil {
         for (const controller of recipients) {
             recipientAddresses.push(controller.identity.address);
         }
-        if (!content) {
-            content = Serializable.fromAny({ content: "TestContent" });
-        }
+        content ??= Serializable.fromAny({ content: "TestContent" });
         return await from.messages.sendMessage({
             recipients: recipientAddresses,
             content: content,

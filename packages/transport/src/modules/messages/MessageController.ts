@@ -4,6 +4,7 @@ import { CoreAddress, CoreDate, CoreId, ICoreAddress, ICoreId } from "@nmshd/cor
 import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
 import { CoreCrypto, TransportCoreErrors, TransportError } from "../../core";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { MessageSentEvent, MessageWasReadAtChangedEvent } from "../../events";
@@ -179,9 +180,7 @@ export class MessageController extends TransportController {
     private async updateCacheOfMessage(message: Message, response?: BackboneGetMessagesResponse) {
         const messageId = message.id.toString();
 
-        if (!response) {
-            response = (await this.client.getMessage(messageId)).value;
-        }
+        response ??= (await this.client.getMessage(messageId)).value;
 
         const envelope = this.getEnvelopeFromBackboneGetMessagesResponse(response);
         const [cachedMessage, messageKey] = await this.decryptMessage(envelope, message.secretKey);
@@ -290,12 +289,12 @@ export class MessageController extends TransportController {
     @log()
     public async sendMessage(parameters: ISendMessageParameters): Promise<Message> {
         const parsedParams = SendMessageParameters.from(parameters);
-        if (!parsedParams.attachments) parsedParams.attachments = [];
+        parsedParams.attachments ??= [];
 
         const validationError = await this.validateMessageRecipients(parsedParams.recipients);
         if (validationError) throw validationError;
 
-        const secret = await CoreCrypto.generateSecretKeyHandle({ providerName: "SoftwareProvider" });
+        const secret = await CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") });
         const serializedSecret = secret.serialize(false);
         const addressArray: ICoreAddress[] = [];
         const envelopeRecipients: MessageEnvelopeRecipient[] = [];
