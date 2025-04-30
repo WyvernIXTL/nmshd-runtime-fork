@@ -1,7 +1,9 @@
 import { type } from "@js-soft/ts-serval";
-import { BackboneIds, IReference, Reference } from "../../../core";
+import { BackboneIds, CoreCrypto, IReference, Reference, TransportCoreErrors, TransportVersion } from "../../../core";
+import { CryptoEncryptionAlgorithm, CryptoSecretKeyHandle } from "@nmshd/crypto";
+import { CryptoObject, getPreferredProviderLevel } from "../../../core/CryptoProviderMapping";
 
-export interface ITokenReference extends IReference {}
+export interface ITokenReference extends IReference { }
 
 @type("TokenReference")
 export class TokenReference extends Reference implements ITokenReference {

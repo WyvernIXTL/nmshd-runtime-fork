@@ -1,9 +1,11 @@
 import { ISerializable, Serializable, serialize, type, validate, ValidationError } from "@js-soft/ts-serval";
 import { CoreId, ICoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoEncryptionAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey } from "@nmshd/crypto";
 import { CoreIdHelper } from "./CoreIdHelper";
 import { TransportCoreErrors } from "./TransportCoreErrors";
-import { ISharedPasswordProtection, SharedPasswordProtection } from "./types";
+import { ISharedPasswordProtection, SharedPasswordProtection, TransportVersion } from "./types";
+import { CoreCrypto } from "./CoreCrypto";
+import { CryptoObject, getPreferredProviderLevel } from "./CryptoProviderMapping";
 
 export interface IReference extends ISerializable {
     id: ICoreId;
@@ -102,5 +104,16 @@ export class Reference extends Serializable implements IReference {
         if (typeof value === "string") return this.fromTruncated(value);
 
         return this.fromAny(value);
+    }
+
+    public async toCryptoSecretKeyHandle(): Promise<CryptoSecretKeyHandle> {
+        let providerIdent = { securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") };
+        let keySpec = CoreCrypto.SECRET_KEY_HANDLE_SPEC.get(TransportVersion.Latest)!;
+        let keySpecAlgorithm = CryptoEncryptionAlgorithm.fromCalCipher(keySpec.cipher);
+        if (keySpecAlgorithm !== this.key.algorithm) {
+            // TODO: This error handling is incorrect.
+            throw TransportCoreErrors.tokens.invalidTokenContent(this.id.toString());
+        }
+        return await CryptoSecretKeyHandle.importRawKeyIntoHandle(providerIdent, this.key.secretKey, keySpec, this.key.algorithm)
     }
 }

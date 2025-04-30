@@ -1,12 +1,13 @@
 import { Serializable } from "@js-soft/ts-serval";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
-import { CoreCrypto, IConfig, ICorrelator, TransportCoreErrors } from "../../core";
+import { CryptoCipher, CryptoEncryptionAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle } from "@nmshd/crypto";
+import { CoreCrypto, IConfig, ICorrelator, TransportCoreErrors, TransportVersion } from "../../core";
 import { PasswordProtection } from "../../core/types/PasswordProtection";
 import { AnonymousTokenClient } from "./backbone/AnonymousTokenClient";
 import { CachedToken } from "./local/CachedToken";
 import { Token } from "./local/Token";
 import { TokenReference } from "./transmission/TokenReference";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 
 export class AnonymousTokenController {
     private readonly client: AnonymousTokenClient;
@@ -20,16 +21,16 @@ export class AnonymousTokenController {
         if (reference.passwordProtection && !password) throw TransportCoreErrors.general.noPasswordProvided();
         const passwordProtection = reference.passwordProtection
             ? PasswordProtection.from({
-                  salt: reference.passwordProtection.salt,
-                  passwordType: reference.passwordProtection.passwordType,
-                  password: password!
-              })
+                salt: reference.passwordProtection.salt,
+                passwordType: reference.passwordProtection.passwordType,
+                password: password!
+            })
             : undefined;
 
-        return await this.loadPeerToken(reference.id, reference.key, reference.forIdentityTruncated, passwordProtection);
+        return await this.loadPeerToken(reference.id, await reference.toCryptoSecretKeyHandle(), reference.forIdentityTruncated, passwordProtection);
     }
 
-    private async loadPeerToken(id: CoreId, secretKey: CryptoSecretKey, forIdentityTruncated?: string, passwordProtection?: PasswordProtection): Promise<Token> {
+    private async loadPeerToken(id: CoreId, secretKey: CryptoSecretKeyHandle, forIdentityTruncated?: string, passwordProtection?: PasswordProtection): Promise<Token> {
         if (forIdentityTruncated) {
             throw TransportCoreErrors.general.notIntendedForYou(id.toString());
         }

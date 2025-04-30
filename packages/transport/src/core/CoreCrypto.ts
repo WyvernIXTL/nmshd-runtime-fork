@@ -154,6 +154,29 @@ export abstract class CoreCrypto {
         }
     }
 
+    static SECRET_KEY_HANDLE_SPEC = new Map<TransportVersion, KeySpec>([
+        [
+            TransportVersion.V1,
+            {
+                cipher: "XChaCha20Poly1305",
+                ephemeral: false,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                signing_hash: "Sha2_512"
+            },
+
+        ],
+        [
+            TransportVersion.Latest,
+            {
+                cipher: "XChaCha20Poly1305",
+                ephemeral: false,
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                signing_hash: "Sha2_512"
+            },
+
+        ]
+    ])
+
     /**
      * Generates a handle-based secret key for symmetric encryption.
      * Depending on the given version, different algorithms are used:
@@ -168,13 +191,7 @@ export abstract class CoreCrypto {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
-                const encryptionSpec: KeySpec = {
-                    cipher: "XChaCha20Poly1305",
-                    ephemeral: false,
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    signing_hash: "Sha2_512"
-                };
-                return await CryptoEncryption.generateKeyHandle(providerIdent, encryptionSpec);
+                return await CryptoEncryption.generateKeyHandle(providerIdent, CoreCrypto.SECRET_KEY_HANDLE_SPEC.get(TransportVersion.V1)!);
             default:
                 throw this.invalidVersion(version);
         }
@@ -351,12 +368,11 @@ export abstract class CoreCrypto {
         content: CoreBuffer,
         secretKey: CryptoSecretKey | CryptoSecretKeyHandle,
         version: TransportVersion = TransportVersion.Latest,
-        provider?: ProviderIdentifier
     ): Promise<CryptoCipher> {
         switch (version) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
-                return await CryptoEncryption.encrypt(content, secretKey, undefined, undefined, provider);
+                return await CryptoEncryption.encrypt(content, secretKey, undefined, undefined);
             default:
                 throw this.invalidVersion(version);
         }

@@ -1,7 +1,7 @@
 import { ISerializable, Serializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoCipher, CryptoSecretKey, CryptoSecretKeyHandle } from "@nmshd/crypto";
 import { CoreCrypto, TransportCoreErrors, TransportError } from "../../core";
 import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
@@ -70,10 +70,10 @@ export class TokenController extends TransportController {
 
         const passwordProtection = parameters.passwordProtection
             ? PasswordProtection.from({
-                  password: parameters.passwordProtection.password,
-                  passwordType: parameters.passwordProtection.passwordType,
-                  salt: salt!
-              })
+                password: parameters.passwordProtection.password,
+                passwordType: parameters.passwordProtection.passwordType,
+                salt: salt!
+            })
             : undefined;
 
         const token = Token.from({
@@ -210,7 +210,7 @@ export class TokenController extends TransportController {
     }
 
     @log()
-    private async decryptToken(response: BackboneGetTokensResponse, secretKey: CryptoSecretKey) {
+    private async decryptToken(response: BackboneGetTokensResponse, secretKey: CryptoSecretKeyHandle) {
         const cipher = CryptoCipher.fromBase64(response.content);
         const plaintextTokenBuffer = await CoreCrypto.decrypt(cipher, secretKey);
         const plaintextTokenContent = Serializable.deserializeUnknown(plaintextTokenBuffer.toUtf8());
@@ -236,18 +236,18 @@ export class TokenController extends TransportController {
         if (reference.passwordProtection && !password) throw TransportCoreErrors.general.noPasswordProvided();
         const passwordProtection = reference.passwordProtection
             ? PasswordProtection.from({
-                  salt: reference.passwordProtection.salt,
-                  passwordType: reference.passwordProtection.passwordType,
-                  password: password!
-              })
+                salt: reference.passwordProtection.salt,
+                passwordType: reference.passwordProtection.passwordType,
+                password: password!
+            })
             : undefined;
 
-        return await this.loadPeerToken(reference.id, reference.key, ephemeral, reference.forIdentityTruncated, passwordProtection);
+        return await this.loadPeerToken(reference.id, await reference.toCryptoSecretKeyHandle(), ephemeral, reference.forIdentityTruncated, passwordProtection);
     }
 
     private async loadPeerToken(
         id: CoreId,
-        secretKey: CryptoSecretKey,
+        secretKey: CryptoSecretKeyHandle,
         ephemeral: boolean,
         forIdentityTruncated?: string,
         passwordProtection?: PasswordProtection
