@@ -1,7 +1,7 @@
 import { ISerializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoHash, CryptoHashAlgorithm, CryptoSecretKey, Encoding } from "@nmshd/crypto";
+import { CoreBuffer, CryptoCipher, CryptoHash, CryptoHashAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle, Encoding } from "@nmshd/crypto";
 import { CoreCrypto, CoreHash, TransportCoreErrors } from "../../core";
 import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
@@ -106,7 +106,7 @@ export class FileController extends TransportController {
     }
 
     @log()
-    private async decryptFile(response: BackboneGetFilesResponse, secretKey: CryptoSecretKey) {
+    private async decryptFile(response: BackboneGetFilesResponse, secretKey: CryptoSecretKeyHandle) {
         const cipher = CryptoCipher.fromBase64(response.encryptedProperties);
         const plaintextMetadataBuffer = await CoreCrypto.decrypt(cipher, secretKey);
         const plaintextMetadata = FileMetadata.deserialize(plaintextMetadataBuffer.toUtf8());
@@ -125,10 +125,11 @@ export class FileController extends TransportController {
     }
 
     public async getOrLoadFileByReference(fileReference: FileReference): Promise<File> {
-        return await this.getOrLoadFile(fileReference.id, fileReference.key);
+        const secretKey = await fileReference.toCryptoSecretKeyHandle();
+        return await this.getOrLoadFile(fileReference.id, secretKey);
     }
 
-    public async getOrLoadFile(id: CoreId, secretKey: CryptoSecretKey): Promise<File> {
+    public async getOrLoadFile(id: CoreId, secretKey: CryptoSecretKeyHandle): Promise<File> {
         const fileDoc = await this.files.read(id.toString());
         if (fileDoc) {
             if (fileDoc.cache) return File.from(fileDoc);

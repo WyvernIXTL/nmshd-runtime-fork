@@ -1,6 +1,6 @@
 import { ISerializable, Serializable, serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, ICoreDate } from "@nmshd/core-types";
-import { CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { CoreHash, ICoreHash } from "../../../core";
 
 export interface IFileMetadata extends ISerializable {
@@ -9,7 +9,7 @@ export interface IFileMetadata extends ISerializable {
     filename: string;
 
     plaintextHash: ICoreHash;
-    secretKey: ICryptoSecretKey;
+    secretKey: ICryptoSecretKeyHandle;
 
     filesize: number;
     filemodified?: ICoreDate;
@@ -36,7 +36,7 @@ export class FileMetadata extends Serializable implements IFileMetadata {
 
     @validate()
     @serialize()
-    public secretKey: CryptoSecretKey;
+    public secretKey: CryptoSecretKeyHandle;
 
     @validate()
     @serialize()

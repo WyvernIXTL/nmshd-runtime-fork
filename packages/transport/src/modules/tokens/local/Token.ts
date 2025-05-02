@@ -2,7 +2,7 @@ import { serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, ICoreDate } from "@nmshd/core-types";
 import { CoreBuffer, CryptoEncryptionAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
-import { CoreSynchronizable, ICoreSynchronizable } from "../../../core";
+import { CoreSynchronizable, ICoreSynchronizable, TransportVersion } from "../../../core";
 import { IPasswordProtection, PasswordProtection } from "../../../core/types/PasswordProtection";
 import { TokenReference } from "../transmission/TokenReference";
 import { CachedToken, ICachedToken } from "./CachedToken";
@@ -64,7 +64,8 @@ export class Token extends CoreSynchronizable implements IToken {
             id: this.id,
             key: legacySecretKey,
             forIdentityTruncated: this.cache!.forIdentity?.toString().slice(-4),
-            passwordProtection: this.passwordProtection?.toSharedPasswordProtection()
+            passwordProtection: this.passwordProtection?.toSharedPasswordProtection(),
+            transportVersion: TransportVersion.Latest
         });
     }
 

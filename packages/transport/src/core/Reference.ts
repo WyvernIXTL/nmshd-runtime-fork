@@ -6,6 +6,7 @@ import { TransportCoreErrors } from "./TransportCoreErrors";
 import { ISharedPasswordProtection, SharedPasswordProtection, TransportVersion } from "./types";
 import { CoreCrypto } from "./CoreCrypto";
 import { CryptoObject, getPreferredProviderLevel } from "./CryptoProviderMapping";
+import { KeyPairHandle } from "@nmshd/rs-crypto-types";
 
 export interface IReference extends ISerializable {
     id: ICoreId;
@@ -13,6 +14,7 @@ export interface IReference extends ISerializable {
     key: ICryptoSecretKey;
     forIdentityTruncated?: string;
     passwordProtection?: ISharedPasswordProtection;
+    transportVersion?: TransportVersion;
 }
 
 @type("Reference")
@@ -36,6 +38,10 @@ export class Reference extends Serializable implements IReference {
     @validate({ nullable: true })
     @serialize()
     public passwordProtection?: SharedPasswordProtection;
+
+    @validate({ nullable: true })
+    @serialize()
+    public transportVersion?: TransportVersion;
 
     public truncate(): string {
         const idPart = this.backboneBaseUrl ? `${this.id.toString()}@${this.backboneBaseUrl}` : this.id.toString();
@@ -107,12 +113,15 @@ export class Reference extends Serializable implements IReference {
     }
 
     public async toCryptoSecretKeyHandle(): Promise<CryptoSecretKeyHandle> {
-        let providerIdent = { securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") };
-        let keySpec = CoreCrypto.SECRET_KEY_HANDLE_SPEC.get(TransportVersion.Latest)!;
+        const providerIdent = { securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption") };
+        let transportVersion = this.transportVersion ? this.transportVersion : TransportVersion.Latest;
+        let keySpec = CoreCrypto.SECRET_KEY_HANDLE_SPEC.get(transportVersion);
+        if (!keySpec) {
+            throw TransportCoreErrors.legacy.unsupportedTransportVersion(transportVersion);
+        }
         let keySpecAlgorithm = CryptoEncryptionAlgorithm.fromCalCipher(keySpec.cipher);
         if (keySpecAlgorithm !== this.key.algorithm) {
-            // TODO: This error handling is incorrect.
-            throw TransportCoreErrors.tokens.invalidTokenContent(this.id.toString());
+            throw TransportCoreErrors.legacy.failedOptimisticConversion(this.id.toString(), "algorithm", keySpecAlgorithm, this.key.algorithm);
         }
         return await CryptoSecretKeyHandle.importRawKeyIntoHandle(providerIdent, this.key.secretKey, keySpec, this.key.algorithm)
     }

@@ -1,5 +1,6 @@
 import { CoreError } from "@nmshd/core-types";
 import { RelationshipStatus } from "../modules";
+import { TransportVersion } from "./types";
 
 class Relationships {
     public operationOnlyAllowedForPeer(message: string) {
@@ -229,6 +230,33 @@ class General {
     }
 }
 
+class Legacy {
+    /**
+     * Error during conversions between legacy keys and key handles, where an attribute did not match.
+     * 
+     * This error occurs, when a function is not able to determine which {@link TransportVersion} is correct, and chooses one optimistically. 
+     * 
+     * @example
+     * throw TransportCoreErrors.legacy.failedOptimisticConversion(this.id.toString(), "algorithm", keySpecAlgorithm, this.key.algorithm);
+     */
+    public failedOptimisticConversion<T extends { toString(): string }>(keyId?: string, mismatchedAttribute?: string, expected?: T, actual?: T) {
+        return new CoreError("error.legacy.failedOptimisticConversion", `An optimistic conversion failed, due to a mismatch in expected and gotten `)
+    }
+
+    /**
+     * Error during conversion between legacy keys and key handles, where the requested transport version is not supported.
+     * 
+     * @example
+     * let keySpec = CoreCrypto.SECRET_KEY_HANDLE_SPEC.get(transportVersion);
+     * if (!keySpec) {
+     *     throw TransportCoreErrors.legacy.unsupportedTransportVersion(transportVersion);
+     * }
+     */
+    public unsupportedTransportVersion(requestedVersion: TransportVersion) {
+        return new CoreError("error.legacy.unsupportedTransportVersion", `Requested transport version is not supported. Requested: '${requestedVersion}', current latest: '${TransportVersion.Latest}'.`)
+    }
+}
+
 export class TransportCoreErrors {
     public static readonly relationships = new Relationships();
     public static readonly general = new General();
@@ -239,4 +267,5 @@ export class TransportCoreErrors {
     public static readonly challenges = new Challenges();
     public static readonly datawallet = new Datawallet();
     public static readonly tokens = new Tokens();
+    public static readonly legacy = new Legacy();
 }

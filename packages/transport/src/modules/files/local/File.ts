@@ -1,13 +1,13 @@
 import { serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, ICoreDate } from "@nmshd/core-types";
-import { CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoEncryptionAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
-import { CoreSynchronizable, ICoreSynchronizable } from "../../../core";
+import { CoreSynchronizable, ICoreSynchronizable, TransportVersion } from "../../../core";
 import { FileReference } from "../transmission/FileReference";
 import { CachedFile, ICachedFile } from "./CachedFile";
 
 export interface IFile extends ICoreSynchronizable {
-    secretKey: ICryptoSecretKey;
+    secretKey: ICryptoSecretKeyHandle;
     isOwn: boolean;
     cache?: ICachedFile;
     cachedAt?: ICoreDate;
@@ -22,7 +22,7 @@ export class File extends CoreSynchronizable implements IFile {
 
     @validate()
     @serialize()
-    public secretKey: CryptoSecretKey;
+    public secretKey: CryptoSecretKeyHandle;
 
     @validate()
     @serialize()
@@ -48,12 +48,16 @@ export class File extends CoreSynchronizable implements IFile {
         return this.fromAny(value);
     }
 
-    public toFileReference(): FileReference {
-        return FileReference.from({ id: this.id, key: this.secretKey });
+    public async toFileReference(): Promise<FileReference> {
+        let rawSecretKey = await this.secretKey.keyHandle.extractKey()
+        let algorithm = CryptoEncryptionAlgorithm.fromCalCipher(this.secretKey.spec.cipher);
+        let legacySecretKey = CryptoSecretKey.from({ secretKey: new CoreBuffer(rawSecretKey), algorithm: algorithm });
+
+        return FileReference.from({ id: this.id, key: legacySecretKey, transportVersion: TransportVersion.Latest });
     }
 
-    public truncate(): string {
-        const reference = this.toFileReference();
+    public async truncate(): Promise<string> {
+        const reference = await this.toFileReference();
         return reference.truncate();
     }
 
