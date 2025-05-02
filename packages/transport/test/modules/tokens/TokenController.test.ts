@@ -60,7 +60,7 @@ describe("TokenController", function () {
             ephemeral: false
         });
         const reference = sentToken.toTokenReference();
-        const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference.truncate(), false);
+        const receivedToken = await recipient.tokens.loadPeerTokenByTruncated((await reference).truncate(), false);
         tempId1 = sentToken.id;
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -90,7 +90,7 @@ describe("TokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
         tempId2 = sentToken.id;
 
@@ -114,14 +114,14 @@ describe("TokenController", function () {
         const expiresAt = CoreDate.utc().add({ minutes: 5 });
         const content = TokenContentRelationshipTemplate.from({
             templateId: await CoreIdHelper.notPrefixed.generate(),
-            secretKey: await CryptoEncryption.generateKey()
+            secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" })
         });
         const sentToken = await sender.tokens.sendToken({
             content,
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -144,7 +144,7 @@ describe("TokenController", function () {
         const expiresAt = CoreDate.utc().add({ minutes: 5 });
         const content = TokenContentRelationshipTemplate.from({
             templateId: await CoreIdHelper.notPrefixed.generate(),
-            secretKey: await CryptoEncryption.generateKey(),
+            secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
             forIdentity: recipient.identity.address
         });
         const sentToken = await sender.tokens.sendToken({
@@ -152,7 +152,7 @@ describe("TokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -176,7 +176,7 @@ describe("TokenController", function () {
         const expiresAt = CoreDate.utc().add({ minutes: 5 });
         const content = TokenContentRelationshipTemplate.from({
             templateId: await CoreIdHelper.notPrefixed.generate(),
-            secretKey: await CryptoEncryption.generateKey(),
+            secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
             passwordProtection: {
                 passwordType: "pw",
                 salt: await CoreCrypto.random(16)
@@ -187,7 +187,7 @@ describe("TokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -215,7 +215,7 @@ describe("TokenController", function () {
         const expiresAt = CoreDate.utc().add({ minutes: 5 });
         const content = TokenContentRelationshipTemplate.from({
             templateId: await CoreIdHelper.notPrefixed.generate(),
-            secretKey: await CryptoEncryption.generateKey(),
+            secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
             forIdentity: recipient.identity.address,
             passwordProtection: {
                 passwordType: "pw",
@@ -227,7 +227,7 @@ describe("TokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -274,7 +274,7 @@ describe("TokenController", function () {
             ephemeral: false,
             forIdentity: recipient.identity.address
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference, false);
         tempId1 = sentToken.id;
 
@@ -299,7 +299,7 @@ describe("TokenController", function () {
         });
 
         await expect(async () => {
-            await recipient.tokens.loadPeerTokenByTruncated(sentToken.toTokenReference().truncate(), true);
+            await recipient.tokens.loadPeerTokenByTruncated((await sentToken.toTokenReference()).truncate(), true);
         }).rejects.toThrow("transport.general.notIntendedForYou");
     });
 
@@ -314,8 +314,8 @@ describe("TokenController", function () {
         });
 
         const reference = sentToken.toTokenReference();
-        reference.forIdentityTruncated = undefined;
-        const truncatedReference = reference.truncate();
+        (await reference).forIdentityTruncated = undefined;
+        const truncatedReference = (await reference).truncate();
 
         await expect(async () => {
             await recipient.tokens.loadPeerTokenByTruncated(truncatedReference, true);
@@ -333,7 +333,7 @@ describe("TokenController", function () {
             passwordProtection: { password: "password", passwordType: "pw" }
         });
         const reference = sentToken.toTokenReference();
-        const receivedToken = await recipient.tokens.loadPeerTokenByTruncated(reference.truncate(), false, "password");
+        const receivedToken = await recipient.tokens.loadPeerTokenByTruncated((await reference).truncate(), false, "password");
         tempId1 = sentToken.id;
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -344,8 +344,8 @@ describe("TokenController", function () {
         expect(sentToken.passwordProtection!.salt).toHaveLength(16);
         expect(sentToken.passwordProtection!.passwordType).toBe("pw");
 
-        expect(reference.passwordProtection!.passwordType).toBe("pw");
-        expect(reference.passwordProtection!.salt).toStrictEqual(sentToken.passwordProtection!.salt);
+        expect((await reference).passwordProtection!.passwordType).toBe("pw");
+        expect((await reference).passwordProtection!.salt).toStrictEqual(sentToken.passwordProtection!.salt);
 
         expect(receivedToken.cache?.content).toBeInstanceOf(JSONWrapper);
         expect((receivedToken.cache?.content as any).content).toBe((sentToken.cache?.content as any).content);
@@ -364,7 +364,7 @@ describe("TokenController", function () {
             ephemeral: false,
             passwordProtection: { password: "password", passwordType: "pw" }
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
 
         await expect(recipient.tokens.loadPeerTokenByTruncated(reference, true, "wrongPassword")).rejects.toThrow("error.platform.recordNotFound");
         await expect(recipient.tokens.loadPeerTokenByTruncated(reference, true)).rejects.toThrow("error.transport.noPasswordProvided");
@@ -380,7 +380,7 @@ describe("TokenController", function () {
             ephemeral: false,
             passwordProtection: { password: "password", passwordType: "pw" }
         });
-        const reference1 = sentToken1.toTokenReference().truncate();
+        const reference1 = (await sentToken1.toTokenReference()).truncate();
 
         const sentToken2 = await sender.tokens.sendToken({
             content,
@@ -388,7 +388,7 @@ describe("TokenController", function () {
             ephemeral: false,
             passwordProtection: { password: "1234", passwordType: "pin4" }
         });
-        const reference2 = sentToken2.toTokenReference().truncate();
+        const reference2 = (await sentToken2.toTokenReference()).truncate();
 
         const receivedToken1 = await recipient.tokens.loadPeerTokenByTruncated(reference1, false, "password");
         const receivedToken2 = await recipient.tokens.loadPeerTokenByTruncated(reference2, false, "1234");
@@ -404,7 +404,7 @@ describe("TokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const tokenId = (await sender.tokens.loadPeerTokenByTruncated(reference, false)).id;
 
         await sender.tokens.cleanupTokensOfDecomposedRelationship(recipient.identity.address);

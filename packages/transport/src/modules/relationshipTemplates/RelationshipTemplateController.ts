@@ -1,7 +1,7 @@
 import { ISerializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoCipher, CryptoSecretKey, CryptoSecretKeyHandle } from "@nmshd/crypto";
 import { CoreCrypto, PasswordProtection, TransportCoreErrors } from "../../core";
 import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
@@ -223,7 +223,7 @@ export class RelationshipTemplateController extends TransportController {
     }
 
     @log()
-    private async decryptRelationshipTemplate(response: BackboneGetRelationshipTemplatesResponse, secretKey: CryptoSecretKey) {
+    private async decryptRelationshipTemplate(response: BackboneGetRelationshipTemplatesResponse, secretKey: CryptoSecretKeyHandle) {
         const cipher = CryptoCipher.fromBase64(response.content);
         const signedTemplateBuffer = await this.secrets.decryptTemplate(cipher, secretKey);
 
@@ -290,7 +290,9 @@ export class RelationshipTemplateController extends TransportController {
               })
             : undefined;
 
-        return await this.loadPeerRelationshipTemplate(reference.id, reference.key, reference.forIdentityTruncated, passwordProtection);
+        const secretKeyHandle = await reference.toCryptoSecretKeyHandle();
+
+        return await this.loadPeerRelationshipTemplate(reference.id, secretKeyHandle, reference.forIdentityTruncated, passwordProtection);
     }
 
     public async loadPeerRelationshipTemplateByTokenContent(tokenContent: TokenContentRelationshipTemplate, password?: string): Promise<RelationshipTemplate> {
@@ -308,7 +310,7 @@ export class RelationshipTemplateController extends TransportController {
 
     private async loadPeerRelationshipTemplate(
         id: CoreId,
-        secretKey: CryptoSecretKey,
+        secretKey: CryptoSecretKeyHandle,
         forIdentityTruncated?: string,
         passwordProtection?: PasswordProtection
     ): Promise<RelationshipTemplate> {

@@ -55,7 +55,7 @@ describe("AnonymousTokenController", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await anonymousTokenController.loadPeerTokenByTruncated(reference);
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -76,7 +76,7 @@ describe("AnonymousTokenController", function () {
             forIdentity: sender.identity.address
         });
 
-        await expect(anonymousTokenController.loadPeerTokenByTruncated(sentToken.toTokenReference().truncate())).rejects.toThrow("transport.general.notIntendedForYou");
+        await expect(anonymousTokenController.loadPeerTokenByTruncated((await sentToken.toTokenReference()).truncate())).rejects.toThrow("transport.general.notIntendedForYou");
     });
 
     test("should throw when loading a personalized token and it's uncaught before reaching the backbone", async function () {
@@ -90,8 +90,8 @@ describe("AnonymousTokenController", function () {
         });
 
         const reference = sentToken.toTokenReference();
-        reference.forIdentityTruncated = undefined;
-        const truncatedReference = reference.truncate();
+        (await reference).forIdentityTruncated = undefined;
+        const truncatedReference = (await reference).truncate();
 
         await expect(anonymousTokenController.loadPeerTokenByTruncated(truncatedReference)).rejects.toThrow("error.platform.recordNotFound");
     });
@@ -106,7 +106,7 @@ describe("AnonymousTokenController", function () {
             ephemeral: false,
             passwordProtection: { password: "password", passwordType: "pw" }
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         const receivedToken = await anonymousTokenController.loadPeerTokenByTruncated(reference, "password");
 
         testTokens(sentToken, receivedToken, tempDate);
@@ -129,7 +129,7 @@ describe("AnonymousTokenController", function () {
             ephemeral: false,
             passwordProtection: { password: "password", passwordType: "pw" }
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
 
         await expect(anonymousTokenController.loadPeerTokenByTruncated(reference, "wrong-password")).rejects.toThrow("error.platform.recordNotFound");
         await expect(anonymousTokenController.loadPeerTokenByTruncated(reference)).rejects.toThrow("error.transport.noPasswordProvided");

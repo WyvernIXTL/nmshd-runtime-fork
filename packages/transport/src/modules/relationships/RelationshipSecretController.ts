@@ -12,6 +12,7 @@ import {
     CryptoRelationshipSecrets,
     CryptoRelationshipSecretsHandle,
     CryptoSecretKey,
+    CryptoSecretKeyHandle,
     CryptoSignature,
     CryptoSignaturePublicKey
 } from "@nmshd/crypto";
@@ -128,7 +129,7 @@ export class RelationshipSecretController extends SecretController {
         return await this.deleteSecretById(secret.id);
     }
 
-    public async decryptTemplate(cipher: CryptoCipher, secretKey: CryptoSecretKey): Promise<CoreBuffer> {
+    public async decryptTemplate(cipher: CryptoCipher, secretKey: CryptoSecretKeyHandle): Promise<CoreBuffer> {
         const decrypted = await CoreCrypto.decrypt(cipher, secretKey);
         return decrypted;
     }

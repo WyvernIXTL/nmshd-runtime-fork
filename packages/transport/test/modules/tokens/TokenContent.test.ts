@@ -72,7 +72,7 @@ describe("TokenContent", function () {
     describe("TokenContentRelationshipTemplate", function () {
         test("should serialize and deserialize correctly (verbose)", async function () {
             const token = TokenContentRelationshipTemplate.from({
-                secretKey: await CryptoEncryption.generateKey(),
+                secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                 templateId: await CoreIdHelper.notPrefixed.generate(),
                 forIdentity: CoreAddress.from("did:e:a-domain:dids:anidentity"),
                 passwordProtection: {
@@ -105,7 +105,7 @@ describe("TokenContent", function () {
 
         test("should serialize and deserialize correctly (no type information)", async function () {
             const token = TokenContentRelationshipTemplate.from({
-                secretKey: await CryptoEncryption.generateKey(),
+                secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                 templateId: await CoreIdHelper.notPrefixed.generate(),
                 forIdentity: CoreAddress.from("did:e:a-domain:dids:anidentity"),
                 passwordProtection: {
@@ -135,7 +135,7 @@ describe("TokenContent", function () {
 
         test("should serialize and deserialize correctly (from unknown type)", async function () {
             const token = TokenContentRelationshipTemplate.from({
-                secretKey: await CryptoEncryption.generateKey(),
+                secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                 templateId: await CoreIdHelper.notPrefixed.generate(),
                 forIdentity: CoreAddress.from("did:e:a-domain:dids:anidentity"),
                 passwordProtection: {
@@ -169,7 +169,7 @@ describe("TokenContent", function () {
         test("should not create a tokenContent with too large passwordType", async function () {
             await expect(async () => {
                 TokenContentRelationshipTemplate.from({
-                    secretKey: await CryptoEncryption.generateKey(),
+                    secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                     templateId: await CoreIdHelper.notPrefixed.generate(),
                     passwordProtection: {
                         passwordType: "pin20",
@@ -182,7 +182,7 @@ describe("TokenContent", function () {
         test("should not create a tokenContent with non-integer passwordType", async function () {
             await expect(async () => {
                 TokenContentRelationshipTemplate.from({
-                    secretKey: await CryptoEncryption.generateKey(),
+                    secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                     templateId: await CoreIdHelper.notPrefixed.generate(),
                     passwordProtection: {
                         passwordType: "pin2.4",
@@ -195,7 +195,7 @@ describe("TokenContent", function () {
         test("should not create a tokenContent with passwordType starting with neither pw nor pin", async function () {
             await expect(async () => {
                 TokenContentRelationshipTemplate.from({
-                    secretKey: await CryptoEncryption.generateKey(),
+                    secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                     templateId: await CoreIdHelper.notPrefixed.generate(),
                     passwordProtection: {
                         passwordType: "pc" as any,
@@ -208,7 +208,7 @@ describe("TokenContent", function () {
         test("should not create a tokenContent with a salt of wrong length", async function () {
             await expect(async () => {
                 TokenContentRelationshipTemplate.from({
-                    secretKey: await CryptoEncryption.generateKey(),
+                    secretKey: await CoreCrypto.generateSecretKeyHandle({ securityLevel: "Software" }),
                     templateId: await CoreIdHelper.notPrefixed.generate(),
                     passwordProtection: {
                         passwordType: "pw",

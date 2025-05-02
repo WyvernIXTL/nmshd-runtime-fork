@@ -1,7 +1,7 @@
 import { ISerializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId, ICoreAddress, ICoreId } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoCipher, CryptoSecretKey, CryptoSecretKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
 import { CoreCrypto, TransportCoreErrors, TransportError } from "../../core";
 import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
@@ -320,7 +320,7 @@ export class MessageController extends TransportController {
         const fileReferences: FileReference[] = [];
         for (const fileObject of parsedParams.attachments) {
             const file = File.from(fileObject);
-            fileReferences.push(file.toFileReference());
+            fileReferences.push(await file.toFileReference());
             publicAttachmentArray.push(file.id);
         }
 
@@ -445,7 +445,7 @@ export class MessageController extends TransportController {
         return;
     }
 
-    private async decryptOwnEnvelope(envelope: MessageEnvelope, secretKey: CryptoSecretKey): Promise<MessageContentWrapper> {
+    private async decryptOwnEnvelope(envelope: MessageEnvelope, secretKey: CryptoSecretKeyHandle): Promise<MessageContentWrapper> {
         this.log.trace(`Decrypting own envelope with id ${envelope.id.toString()}...`);
 
         const plaintextMessageBuffer = await CoreCrypto.decrypt(envelope.cipher, secretKey);
@@ -456,7 +456,7 @@ export class MessageController extends TransportController {
     }
 
     @log()
-    private async decryptPeerEnvelope(envelope: MessageEnvelope, relationship: Relationship): Promise<[MessageContentWrapper, CryptoSecretKey]> {
+    private async decryptPeerEnvelope(envelope: MessageEnvelope, relationship: Relationship): Promise<[MessageContentWrapper, CryptoSecretKeyHandle]> {
         const ownKeyCipher = envelope.recipients.find((r) => this.parent.identity.isMe(r.address))?.encryptedKey;
 
         if (!ownKeyCipher) {
@@ -464,7 +464,7 @@ export class MessageController extends TransportController {
         }
 
         const plaintextKeyBuffer = await this.secrets.decryptPeer(relationship.relationshipSecretId, ownKeyCipher, true);
-        const plaintextKey = CryptoSecretKey.deserialize(plaintextKeyBuffer.toUtf8());
+        const plaintextKey = await CryptoSecretKeyHandle.deserialize(plaintextKeyBuffer.toUtf8());
         const plaintextMessageBuffer = await CoreCrypto.decrypt(envelope.cipher, plaintextKey);
 
         const signedMessage = MessageSigned.deserialize(plaintextMessageBuffer.toUtf8());
@@ -504,10 +504,10 @@ export class MessageController extends TransportController {
     }
 
     @log()
-    private async decryptMessage(envelope: MessageEnvelope, secretKey?: CryptoSecretKey): Promise<[CachedMessage, CryptoSecretKey, Relationship?]> {
+    private async decryptMessage(envelope: MessageEnvelope, secretKey?: CryptoSecretKeyHandle): Promise<[CachedMessage, CryptoSecretKeyHandle, Relationship?]> {
         this.log.trace(`Decrypting MessageEnvelope with id ${envelope.id}...`);
         let plainMessage: MessageContentWrapper;
-        let messageKey: CryptoSecretKey;
+        let messageKey: CryptoSecretKeyHandle;
 
         const recipients: CachedMessageRecipient[] = [];
 

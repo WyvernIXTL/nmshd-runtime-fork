@@ -28,7 +28,7 @@ describe("SyncController.error", function () {
         // in the ExternalEventsProcessor of templatorDevice2, because the template
         // doesn't exist on templatorDevice2
 
-        const reference = templateOnTemplatorDevice.toRelationshipTemplateReference().truncate();
+        const reference = (await templateOnTemplatorDevice.toRelationshipTemplateReference()).truncate();
         const templateOnRequestorDevice = await requestorDevice.relationshipTemplates.loadPeerRelationshipTemplateByTruncated(reference);
 
         await requestorDevice.relationships.sendRelationship({

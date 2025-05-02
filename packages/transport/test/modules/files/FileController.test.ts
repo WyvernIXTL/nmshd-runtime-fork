@@ -62,7 +62,7 @@ describe("FileController", function () {
         const content = CoreBuffer.fromUtf8("Test");
         const sentFile = await TestUtil.uploadFile(sender, content);
 
-        const reference = sentFile.toFileReference().truncate();
+        const reference = (await sentFile.toFileReference()).truncate();
         const receivedFile = await recipient.files.getOrLoadFileByTruncated(reference);
         tempId1 = sentFile.id;
 
@@ -82,7 +82,7 @@ describe("FileController", function () {
         const content = CoreBuffer.fromUtf8("Test2");
         const sentFile = await TestUtil.uploadFile(sender, content);
 
-        const reference = sentFile.toFileReference().truncate();
+        const reference = (await sentFile.toFileReference()).truncate();
         const receivedFile = await recipient.files.getOrLoadFileByTruncated(reference);
         tempId2 = sentFile.id;
 
@@ -94,7 +94,7 @@ describe("FileController", function () {
         const content = CoreBuffer.fromUtf8("Test3");
         const sentFile = await TestUtil.uploadFile(sender, content);
 
-        const reference = sentFile.toFileReference().truncate();
+        const reference = (await sentFile.toFileReference()).truncate();
         const receivedFile = await recipient.files.getOrLoadFileByTruncated(reference);
 
         expectValidFiles(sentFile, receivedFile, tempDate);

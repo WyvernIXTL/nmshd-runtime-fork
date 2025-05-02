@@ -1,12 +1,12 @@
 import { serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, ICoreDate } from "@nmshd/core-types";
-import { CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
 import { CoreSynchronizable, ICoreSynchronizable } from "../../../core";
 import { CachedMessage, ICachedMessage } from "./CachedMessage";
 
 export interface IMessage extends ICoreSynchronizable {
-    secretKey: ICryptoSecretKey;
+    secretKey: ICryptoSecretKeyHandle;
     isOwn: boolean;
     cache?: ICachedMessage;
     cachedAt?: ICoreDate;
@@ -25,7 +25,7 @@ export class Message extends CoreSynchronizable implements IMessage {
 
     @validate()
     @serialize()
-    public secretKey: CryptoSecretKey;
+    public secretKey: CryptoSecretKeyHandle;
 
     @validate()
     @serialize()

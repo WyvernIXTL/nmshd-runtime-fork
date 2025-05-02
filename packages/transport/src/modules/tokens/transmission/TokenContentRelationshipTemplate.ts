@@ -1,11 +1,11 @@
 import { ISerializable, Serializable, serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreAddress, CoreId, ICoreAddress, ICoreId } from "@nmshd/core-types";
-import { CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { ISharedPasswordProtection, SharedPasswordProtection } from "../../../core/types/SharedPasswordProtection";
 
 export interface ITokenContentRelationshipTemplate extends ISerializable {
     templateId: ICoreId;
-    secretKey: ICryptoSecretKey;
+    secretKey: ICryptoSecretKeyHandle;
     forIdentity?: ICoreAddress;
     passwordProtection?: ISharedPasswordProtection;
 }
@@ -18,7 +18,7 @@ export class TokenContentRelationshipTemplate extends Serializable implements IT
 
     @validate()
     @serialize()
-    public secretKey: CryptoSecretKey;
+    public secretKey: CryptoSecretKeyHandle;
 
     @validate({ nullable: true })
     @serialize()

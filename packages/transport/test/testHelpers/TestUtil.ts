@@ -317,7 +317,7 @@ export class TestUtil {
             maxNumberOfAllocations: 1
         });
 
-        const templateReference = templateFrom.toRelationshipTemplateReference().truncate();
+        const templateReference = (await templateFrom.toRelationshipTemplateReference()).truncate();
         const templateTo = await to.relationshipTemplates.loadPeerRelationshipTemplateByTruncated(templateReference);
 
         return templateTo;
@@ -332,7 +332,7 @@ export class TestUtil {
             maxNumberOfAllocations: 1
         });
 
-        const reference = templateFrom.toRelationshipTemplateReference().truncate();
+        const reference = (await templateFrom.toRelationshipTemplateReference()).truncate();
         const templateTo = await to.relationshipTemplates.loadPeerRelationshipTemplateByTruncated(reference);
 
         await to.relationships.sendRelationship({
@@ -371,7 +371,7 @@ export class TestUtil {
                 maxNumberOfAllocations: 1
             }));
 
-        const templateReference = templateFrom.toRelationshipTemplateReference().truncate();
+        const templateReference = (await templateFrom.toRelationshipTemplateReference()).truncate();
         const templateTo = await to.relationshipTemplates.loadPeerRelationshipTemplateByTruncated(templateReference);
 
         await to.relationships.sendRelationship({

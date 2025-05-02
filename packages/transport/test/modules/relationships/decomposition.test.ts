@@ -47,7 +47,7 @@ describe("Data cleanup after relationship decomposition", function () {
             expiresAt,
             ephemeral: false
         });
-        const reference = sentToken.toTokenReference().truncate();
+        const reference = (await sentToken.toTokenReference()).truncate();
         tokenId = (await sender.tokens.loadPeerTokenByTruncated(reference, false)).id;
 
         await TestUtil.terminateRelationship(sender, recipient1);

@@ -1,13 +1,13 @@
 import { serialize, type, validate } from "@js-soft/ts-serval";
 import { CoreDate, ICoreDate } from "@nmshd/core-types";
-import { CryptoSecretKey, ICryptoSecretKey } from "@nmshd/crypto";
+import { CoreBuffer, CryptoEncryptionAlgorithm, CryptoSecretKey, CryptoSecretKeyHandle, ICryptoSecretKey, ICryptoSecretKeyHandle } from "@nmshd/crypto";
 import { nameof } from "ts-simple-nameof";
 import { CoreSynchronizable, ICoreSynchronizable, IPasswordProtection, PasswordProtection } from "../../../core";
 import { RelationshipTemplateReference } from "../transmission/RelationshipTemplateReference";
 import { CachedRelationshipTemplate, ICachedRelationshipTemplate } from "./CachedRelationshipTemplate";
 
 export interface IRelationshipTemplate extends ICoreSynchronizable {
-    secretKey: ICryptoSecretKey;
+    secretKey: ICryptoSecretKeyHandle;
     isOwn: boolean;
     passwordProtection?: IPasswordProtection;
     cache?: ICachedRelationshipTemplate;
@@ -24,7 +24,7 @@ export class RelationshipTemplate extends CoreSynchronizable implements IRelatio
 
     @validate()
     @serialize()
-    public secretKey: CryptoSecretKey;
+    public secretKey: CryptoSecretKeyHandle;
 
     @validate()
     @serialize()
@@ -54,17 +54,21 @@ export class RelationshipTemplate extends CoreSynchronizable implements IRelatio
         return this.fromAny(value);
     }
 
-    public toRelationshipTemplateReference(): RelationshipTemplateReference {
+    public async toRelationshipTemplateReference(): Promise<RelationshipTemplateReference> {
+        let rawSecretKey = await this.secretKey.keyHandle.extractKey();
+        let algorithm = CryptoEncryptionAlgorithm.fromCalCipher(this.secretKey.spec.cipher);
+        let legacySecretKey = CryptoSecretKey.from({ secretKey: new CoreBuffer(rawSecretKey), algorithm: algorithm });
+
         return RelationshipTemplateReference.from({
             id: this.id,
-            key: this.secretKey,
+            key: legacySecretKey,
             forIdentityTruncated: this.cache!.forIdentity?.toString().slice(-4),
             passwordProtection: this.passwordProtection?.toSharedPasswordProtection()
         });
     }
 
-    public truncate(): string {
-        const reference = this.toRelationshipTemplateReference();
+    public async truncate(): Promise<string> {
+        const reference = await this.toRelationshipTemplateReference();
         return reference.truncate();
     }
 
