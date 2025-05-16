@@ -13,17 +13,20 @@ import {
     CryptoHashAlgorithm,
     CryptoRandom,
     CryptoSecretKey,
+    CryptoSecretKeyHandle,
     CryptoSignature,
     CryptoSignatureAlgorithm,
     CryptoSignatureKeypair,
     CryptoSignaturePrivateKey,
     CryptoSignaturePublicKey,
     CryptoSignatures,
-    Encoding
+    Encoding,
+    ProviderIdentifier
 } from "@nmshd/crypto";
 import { PasswordGenerator } from "../util";
 import { TransportError } from "./TransportError";
 import { TransportVersion } from "./types/TransportVersion";
+import { KeySpec } from "@nmshd/rs-crypto-types";
 
 export abstract class CoreCrypto {
     /**
@@ -76,6 +79,30 @@ export abstract class CoreCrypto {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
                 return await CryptoEncryption.generateKey(CryptoEncryptionAlgorithm.XCHACHA20_POLY1305);
+            default:
+                throw this.invalidVersion(version);
+        }
+    }
+
+    /**
+     * Generates a secrete key on a provider stored by said provider.
+     *
+     * v1: AES256_GCM ^ Sha2 512bit
+     *
+     * @param providerIdent A provider identifier used to choose the right provider.
+     * @param version The version which should be used, "latest" is the default.
+     * @returns A key handle.
+     */
+    public static async generateSecretKeyHandle(providerIdent: ProviderIdentifier, version: TransportVersion = TransportVersion.Latest): Promise<CryptoSecretKeyHandle> {
+        switch (version) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            case TransportVersion.V1:
+                let spec: KeySpec = {
+                    cipher: "AesGcm256",
+                    signing_hash: "Sha2_512",
+                    ephemeral: false
+                };
+                return await CryptoEncryption.generateKeyHandle(providerIdent, spec);
             default:
                 throw this.invalidVersion(version);
         }

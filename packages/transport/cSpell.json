@@ -1,12 +1,19 @@
 {
     "words": [
         "cdep",
+        "correlator",
         "docdb",
+        "Encryptionkey",
         "ferretdb",
+        "Keypair",
+        "Libsodium",
         "lokijs",
         "luxon",
         "nameof",
         "nmshd",
-        "notest"
+        "notest",
+        "pwhash",
+        "Synchronizable",
+        "XCHACHA"
     ]
 }
