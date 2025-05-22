@@ -6,7 +6,7 @@ import {
     CoreBuffer,
     CryptoCipher,
     CryptoDerivationHandle,
-    CryptoEncryptionWithCryptoLayer,
+    CryptoEncryptionHandle,
     CryptoExchangeKeypair,
     CryptoExchangePrivateKey,
     CryptoSecretKey,
@@ -69,7 +69,7 @@ export class DeviceSecretController extends TransportController {
         // const encryptionKey = await CoreCrypto.deriveKeyFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
         const encryptionKey = await CryptoDerivationHandle.deriveKeyHandleFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
 
-        const cipher = await CryptoEncryptionWithCryptoLayer.encrypt(plainBuffer, encryptionKey);
+        const cipher = await CryptoEncryptionHandle.encrypt(plainBuffer, encryptionKey);
 
         // const cipher = await CoreCrypto.encrypt(plainBuffer, encryptionKey);
         const date = CoreDate.utc();
@@ -98,7 +98,7 @@ export class DeviceSecretController extends TransportController {
         // const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
         const decryptionKey = await CryptoDerivationHandle.deriveKeyHandleFromBase(baseKey, 1, DeviceSecretController.secretContext);
         // const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
-        const plainBuffer = await CryptoEncryptionWithCryptoLayer.decrypt(secret.cipher, decryptionKey);
+        const plainBuffer = await CryptoEncryptionHandle.decrypt(secret.cipher, decryptionKey);
         const plainString = plainBuffer.toUtf8();
 
         const decryptedSecret = Serializable.deserializeUnknown(plainString);

@@ -5,7 +5,7 @@ import {
     CryptoDerivationAlgorithm,
     CryptoEncryption,
     CryptoEncryptionAlgorithm,
-    CryptoEncryptionWithCryptoLayer,
+    CryptoEncryptionHandle,
     CryptoExchange,
     CryptoExchangeAlgorithm,
     CryptoExchangeKeypair,
@@ -87,7 +87,7 @@ export abstract class CoreCrypto {
                     // eslint-disable-next-line @typescript-eslint/naming-convention
                     signing_hash: "Sha2_512"
                 };
-                return await CryptoEncryptionWithCryptoLayer.generateKey(providerIdent, encryptionSpec);
+                return await CryptoEncryptionHandle.generateKey(providerIdent, encryptionSpec);
             default:
                 throw this.invalidVersion(version);
         }

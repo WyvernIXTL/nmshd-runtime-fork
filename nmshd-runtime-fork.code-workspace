@@ -18,6 +18,7 @@
                 "cwd": "${workspaceFolder}/packages/transport",
                 "env": {
                     "RUST_LOG": "trace,sled=off",
+                    "NMSHD_TEST_BASEURL_ADMIN_API": "http://localhost:8091",
                     "NMSHD_TEST_CLIENTSECRET": "test",
                     "NMSHD_TEST_CLIENTID": "test",
                     "NMSHD_TEST_BASEURL": "http://localhost:8090"
