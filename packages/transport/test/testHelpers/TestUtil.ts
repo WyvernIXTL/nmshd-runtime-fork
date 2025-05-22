@@ -9,6 +9,7 @@ import { ISerializable, Serializable } from "@js-soft/ts-serval";
 import { EventEmitter2EventBus, sleep } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
 import { CoreBuffer } from "@nmshd/crypto";
+import { createProvider, createProviderFromName, getAllProviders, getProviderCapabilities } from "@nmshd/rs-crypto-node";
 import fs from "fs";
 import { DurationLike } from "luxon";
 import path from "path";
@@ -159,11 +160,28 @@ export class TestUtil {
     }
 
     public static createTransport(configOverwrite: Partial<IConfigOverwrite> = {}, correlator?: ICorrelator): Transport {
+        const randomDigits = Math.floor(Math.random() * 1000)
+            .toString()
+            .padStart(3, "0");
+        const dynamicDbDir = `./tempdb/test_${randomDigits}_cal_db`;
+
+        const calConfig = {
+            factoryFunctions: { getAllProviders, createProvider, createProviderFromName, getProviderCapabilities },
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            keyMetadataStoreConfig: { FileStoreConfig: { db_dir: dynamicDbDir } },
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            keyMetadataStoreAuth: { StorageConfigPass: "12345678" },
+            providersToBeInitialized: []
+        };
+
         const eventBus = TestUtil.createEventBus();
 
         const config = TestUtil.createConfig();
 
-        return new Transport({ ...config, ...configOverwrite }, eventBus, TestUtil.loggerFactory, correlator);
+        return new Transport({ ...config, ...configOverwrite }, eventBus, TestUtil.loggerFactory, correlator, {
+            config: calConfig,
+            initializeAllAvailableProviders: true
+        });
     }
 
     public static createEventBus(): EventEmitter2EventBus {

@@ -91,15 +91,15 @@ describe("SecretController", function () {
 
             if (secret.secret instanceof CryptoSignatureKeypair) {
                 const loadedSecret = secret.secret;
-                expect(loadedSecret.privateKey.toBase64()).toStrictEqual(signatureKeypair.privateKey.toBase64());
-                expect(loadedSecret.publicKey.toBase64()).toStrictEqual(signatureKeypair.publicKey.toBase64());
+                expect(CryptoSignatureKeypair.from(loadedSecret).privateKey.toBase64()).toStrictEqual(signatureKeypair.privateKey.toBase64());
+                expect(CryptoSignatureKeypair.from(loadedSecret).publicKey.toBase64()).toStrictEqual(signatureKeypair.publicKey.toBase64());
             } else if (secret.secret instanceof CryptoExchangeKeypair) {
                 const loadedSecret = secret.secret;
-                expect(loadedSecret.privateKey.toBase64()).toStrictEqual(exchangeKeypair.privateKey.toBase64());
-                expect(loadedSecret.publicKey.toBase64()).toStrictEqual(exchangeKeypair.publicKey.toBase64());
+                expect(CryptoExchangeKeypair.from(loadedSecret).privateKey.toBase64()).toStrictEqual(exchangeKeypair.privateKey.toBase64());
+                expect(CryptoExchangeKeypair.from(loadedSecret).toBase64()).toStrictEqual(exchangeKeypair.publicKey.toBase64());
             } else if (secret.secret instanceof CryptoSecretKey) {
                 const loadedSecret = secret.secret;
-                expect(loadedSecret.secretKey.toBase64()).toStrictEqual(secretKey.secretKey.toBase64());
+                expect(CryptoSecretKey.from(loadedSecret).secretKey.toBase64()).toStrictEqual(secretKey.secretKey.toBase64());
             } else {
                 throw new Error("Secret type mismatch!");
             }

@@ -2,9 +2,10 @@ import { IDatabaseCollection, IDatabaseCollectionProvider, IDatabaseMap } from "
 import { ILogger } from "@js-soft/logging-abstractions";
 import { log } from "@js-soft/ts-utils";
 import { CoreAddress, CoreDate, CoreId } from "@nmshd/core-types";
-import { CryptoSecretKey } from "@nmshd/crypto";
+import { CryptoSecretKeyHandle } from "@nmshd/crypto";
 import { AbstractAuthenticator, Authenticator, ControllerName, IConfig, Transport, TransportCoreErrors, TransportError } from "../../core";
 import { CoreCrypto } from "../../core/CoreCrypto";
+import { CryptoObject, getPreferredProviderLevel } from "../../core/CryptoProviderMapping";
 import { DbCollectionName } from "../../core/DbCollectionName";
 import { DependencyOverrides } from "../../core/DependencyOverrides";
 import { TransportLoggerFactory } from "../../core/TransportLoggerFactory";
@@ -162,7 +163,7 @@ export class AccountController {
 
             const availableIdentity = Identity.from(availableIdentityDoc);
             const availableDevice = Device.from(availableDeviceDoc);
-            const availableBaseKey = CryptoSecretKey.fromJSON(availableBaseKeyDoc);
+            const availableBaseKey = await CryptoSecretKeyHandle.fromJSON(availableBaseKeyDoc);
 
             await this.identity.init(availableIdentity);
             await this.identityDeletionProcess.init();
@@ -273,7 +274,7 @@ export class AccountController {
             // Generate Shared Base Key
             CoreCrypto.generateSecretKey(),
             // Generate Device Base Key
-            CoreCrypto.generateSecretKey()
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "deviceSecretBaseKey") })
         ]);
         this._log.trace("Created keys. Requesting challenge...");
 
@@ -370,7 +371,7 @@ export class AccountController {
             CoreCrypto.generateSignatureKeypair(),
             this.fetchDeviceInfo(),
             // Generate device basekey
-            CoreCrypto.generateSecretKey()
+            CoreCrypto.generateSecretKeyHandle({ securityLevel: getPreferredProviderLevel(this.constructor.name as CryptoObject, "encryption", "deviceSecretBaseKey") })
         ]);
 
         const device = Device.from({

@@ -97,7 +97,8 @@ export class RelationshipSecretController extends SecretController {
         if (!(secret.secret instanceof CryptoRelationshipSecrets)) {
             throw TransportCoreErrors.secrets.wrongSecretType(secret.id.toString());
         }
-        const publicResponse = secret.secret.toPublicResponse();
+
+        const publicResponse = CryptoRelationshipSecrets.from(secret.secret).toPublicResponse();
         return publicResponse;
     }
 

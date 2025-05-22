@@ -1,0 +1,41 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib"
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Debug Tests",
+                "type": "node-terminal",
+                "request": "launch",
+                "command": "npm run test:local:lokijs modules/account",
+                "cwd": "${workspaceFolder}/packages/transport",
+                "env": {
+                    "RUST_LOG": "trace,sled=off",
+                    "NMSHD_TEST_CLIENTSECRET": "test",
+                    "NMSHD_TEST_CLIENTID": "test",
+                    "NMSHD_TEST_BASEURL": "http://localhost:8090"
+                }
+            },
+            {
+                "name": "Debug All Tests",
+                "type": "node-terminal",
+                "request": "launch",
+                "command": "npm run test:local:lokijs",
+                "cwd": "${workspaceFolder}/packages/transport",
+                "env": {
+                    "RUST_LOG": "trace,sled=off",
+                    "NMSHD_TEST_CLIENTSECRET": "test",
+                    "NMSHD_TEST_CLIENTID": "test",
+                    "NMSHD_TEST_BASEURL": "http://localhost:8090"
+                }
+            }
+        ]
+    }
+}

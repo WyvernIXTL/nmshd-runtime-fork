@@ -54,7 +54,8 @@ export class IdentityController extends TransportController {
         const privateKey = privateKeyContainer.secret;
 
         const signature = await CoreCrypto.sign(content, privateKey);
-        privateKey.clear();
+        // TODO: check later
+        // privateKey.clear();
         return signature;
     }
 

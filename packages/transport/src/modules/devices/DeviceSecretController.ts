@@ -2,7 +2,18 @@ import { IDatabaseMap } from "@js-soft/docdb-access-abstractions";
 import { Serializable } from "@js-soft/ts-serval";
 import { log } from "@js-soft/ts-utils";
 import { CoreDate } from "@nmshd/core-types";
-import { CoreBuffer, CryptoCipher, CryptoExchangeKeypair, CryptoExchangePrivateKey, CryptoSecretKey, CryptoSignatureKeypair, CryptoSignaturePrivateKey } from "@nmshd/crypto";
+import {
+    CoreBuffer,
+    CryptoCipher,
+    CryptoDerivationHandle,
+    CryptoEncryptionWithCryptoLayer,
+    CryptoExchangeKeypair,
+    CryptoExchangePrivateKey,
+    CryptoSecretKey,
+    CryptoSecretKeyHandle,
+    CryptoSignatureKeypair,
+    CryptoSignaturePrivateKey
+} from "@nmshd/crypto";
 import { CoreCrypto, TransportCoreErrors } from "../../core";
 import { ControllerName, TransportController } from "../../core/TransportController";
 import { TransportIds } from "../../core/TransportIds";
@@ -33,9 +44,9 @@ export class DeviceSecretController extends TransportController {
 
     private static readonly secretContext: string = "DEVICE01";
 
-    private readonly baseKey?: CryptoSecretKey;
+    private readonly baseKey?: CryptoSecretKeyHandle;
 
-    public constructor(parent: AccountController, baseKey: CryptoSecretKey) {
+    public constructor(parent: AccountController, baseKey: CryptoSecretKeyHandle) {
         super(ControllerName.DeviceSecret, parent);
         this.baseKey = baseKey;
     }
@@ -55,9 +66,12 @@ export class DeviceSecretController extends TransportController {
         const plainString = secret.serialize();
         const plainBuffer = CoreBuffer.fromUtf8(plainString);
 
-        const encryptionKey = await CoreCrypto.deriveKeyFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
+        // const encryptionKey = await CoreCrypto.deriveKeyFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
+        const encryptionKey = await CryptoDerivationHandle.deriveKeyHandleFromBase(this.getBaseKey(), 1, DeviceSecretController.secretContext);
 
-        const cipher = await CoreCrypto.encrypt(plainBuffer, encryptionKey);
+        const cipher = await CryptoEncryptionWithCryptoLayer.encrypt(plainBuffer, encryptionKey);
+
+        // const cipher = await CoreCrypto.encrypt(plainBuffer, encryptionKey);
         const date = CoreDate.utc();
         const container = SecretContainerCipher.from({
             cipher: cipher,
@@ -81,8 +95,10 @@ export class DeviceSecretController extends TransportController {
 
         const baseKey = this.getBaseKey();
         const secret = SecretContainerCipher.from(secretObj);
-        const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
-        const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
+        // const decryptionKey = await CoreCrypto.deriveKeyFromBase(baseKey, 1, DeviceSecretController.secretContext);
+        const decryptionKey = await CryptoDerivationHandle.deriveKeyHandleFromBase(baseKey, 1, DeviceSecretController.secretContext);
+        // const plainBuffer = await CoreCrypto.decrypt(secret.cipher, decryptionKey);
+        const plainBuffer = await CryptoEncryptionWithCryptoLayer.decrypt(secret.cipher, decryptionKey);
         const plainString = plainBuffer.toUtf8();
 
         const decryptedSecret = Serializable.deserializeUnknown(plainString);
@@ -139,7 +155,7 @@ export class DeviceSecretController extends TransportController {
             description: device.description,
             profileName,
             synchronizationKey: synchronizationKey.secret,
-            identityPrivateKey: identityPrivateKey?.secret as CryptoSignaturePrivateKey,
+            identityPrivateKey: identityPrivateKey?.secret as unknown as CryptoSignaturePrivateKey,
             username: device.username,
             password: device.initialPassword!,
             identity: this.parent.identity.identity,
@@ -164,7 +180,8 @@ export class DeviceSecretController extends TransportController {
         const encryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
 
         const cipher = await CoreCrypto.encrypt(serializedEvent, encryptionKey);
-        privSync.secret.clear();
+        // TODO check later
+        // privSync.secret.clear();
         return cipher.toBase64();
     }
 
@@ -184,7 +201,8 @@ export class DeviceSecretController extends TransportController {
         const decryptionKey = await CoreCrypto.deriveKeyFromBase(privSync.secret, index, "DataSync");
 
         const plaintext = await CoreCrypto.decrypt(payloadCipher, decryptionKey);
-        privSync.secret.clear();
+        // TODO check later
+        // privSync.secret.clear();
 
         const deserializedObject = JSON.parse(plaintext.toUtf8());
 
@@ -192,7 +210,7 @@ export class DeviceSecretController extends TransportController {
     }
 
     @log()
-    private getBaseKey(): CryptoSecretKey {
+    private getBaseKey(): CryptoSecretKeyHandle {
         if (!this.baseKey) {
             throw TransportCoreErrors.general.recordNotFound(CryptoSecretKey, DeviceSecretType.SharedSecretBaseKey);
         }

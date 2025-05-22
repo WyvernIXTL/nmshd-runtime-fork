@@ -215,7 +215,7 @@ export class SecretController extends TransportController {
         const baseKey = await this.parent.activeDevice.secrets.loadSecret(DeviceSecretType.SharedSecretBaseKey);
 
         if (baseKey) {
-            this.baseKey = baseKey.secret as CryptoSecretKey;
+            this.baseKey = baseKey.secret as unknown as CryptoSecretKey;
         } else {
             throw TransportCoreErrors.general.recordNotFound(CryptoSecretKey, DeviceSecretType.SharedSecretBaseKey);
         }

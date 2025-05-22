@@ -5,6 +5,7 @@ import {
     CryptoDerivationAlgorithm,
     CryptoEncryption,
     CryptoEncryptionAlgorithm,
+    CryptoEncryptionWithCryptoLayer,
     CryptoExchange,
     CryptoExchangeAlgorithm,
     CryptoExchangeKeypair,
@@ -13,14 +14,17 @@ import {
     CryptoHashAlgorithm,
     CryptoRandom,
     CryptoSecretKey,
+    CryptoSecretKeyHandle,
     CryptoSignature,
     CryptoSignatureAlgorithm,
     CryptoSignatureKeypair,
     CryptoSignaturePrivateKey,
     CryptoSignaturePublicKey,
     CryptoSignatures,
-    Encoding
+    Encoding,
+    ProviderIdentifier
 } from "@nmshd/crypto";
+import { KeySpec } from "@nmshd/rs-crypto-types";
 import { PasswordGenerator } from "../util";
 import { TransportError } from "./TransportError";
 import { TransportVersion } from "./types/TransportVersion";
@@ -58,6 +62,32 @@ export abstract class CoreCrypto {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             case TransportVersion.V1:
                 return await CryptoExchange.generateKeypair(CryptoExchangeAlgorithm.ECDH_X25519);
+            default:
+                throw this.invalidVersion(version);
+        }
+    }
+
+    /**
+     * Generates a handle-based secret key for symmetric encryption.
+     * Depending on the given version, different algorithms are used:
+     *
+     * v1: AES256_GCM
+     *
+     * @param providerIdent The provider identifier
+     * @param version The version which should be used, "latest" is the default.
+     * @returns A Promise object resolving into a new CryptoSecretKeyHandle.
+     */
+    public static async generateSecretKeyHandle(providerIdent: ProviderIdentifier, version: TransportVersion = TransportVersion.Latest): Promise<CryptoSecretKeyHandle> {
+        switch (version) {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            case TransportVersion.V1:
+                const encryptionSpec: KeySpec = {
+                    cipher: "XChaCha20Poly1305",
+                    ephemeral: false,
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    signing_hash: "Sha2_512"
+                };
+                return await CryptoEncryptionWithCryptoLayer.generateKey(providerIdent, encryptionSpec);
             default:
                 throw this.invalidVersion(version);
         }

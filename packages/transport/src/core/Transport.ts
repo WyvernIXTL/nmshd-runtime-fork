@@ -1,10 +1,11 @@
 import { ILogger, ILoggerFactory } from "@js-soft/logging-abstractions";
 import { SimpleLoggerFactory } from "@js-soft/simple-logger";
 import { EventBus } from "@js-soft/ts-utils";
-import { SodiumWrapper } from "@nmshd/crypto";
+import { CryptoLayerConfig, initCryptoLayerProviders, SodiumWrapper } from "@nmshd/crypto";
 import { AgentOptions } from "http";
 import { AgentOptions as HTTPSAgentOptions } from "https";
 import _ from "lodash";
+import { ALL_CRYPTO_PROVIDERS } from "./CryptoProviderMapping";
 import { ICorrelator } from "./ICorrelator";
 import { TransportCoreErrors } from "./TransportCoreErrors";
 import { TransportError } from "./TransportError";
@@ -52,6 +53,7 @@ export interface IConfigOverwrite {
 }
 
 export class Transport {
+    private calInitialized: boolean;
     private readonly _config: IConfig;
     public get config(): IConfig {
         return this._config;
@@ -86,7 +88,11 @@ export class Transport {
         customConfig: IConfigOverwrite,
         public readonly eventBus: EventBus,
         loggerFactory: ILoggerFactory = new SimpleLoggerFactory(),
-        public readonly correlator?: ICorrelator
+        public readonly correlator?: ICorrelator,
+        public readonly cryptoLayer?: {
+            config: CryptoLayerConfig;
+            initializeAllAvailableProviders: boolean;
+        }
     ) {
         this._config = _.defaultsDeep({}, customConfig, Transport.defaultConfig);
 
@@ -120,7 +126,21 @@ export class Transport {
 
     public async init(): Promise<Transport> {
         log.trace("Initializing Libsodium...");
-        await SodiumWrapper.ready();
+        const sodium = SodiumWrapper.ready();
+
+        if (this.cryptoLayer && !this.calInitialized) {
+            log.trace("Initializing Crypto Layer...");
+            if (this.cryptoLayer.initializeAllAvailableProviders) {
+                this.cryptoLayer.config.providersToBeInitialized = ALL_CRYPTO_PROVIDERS.map((name) => ({
+                    providerName: name
+                }));
+            }
+            await initCryptoLayerProviders(this.cryptoLayer.config);
+            log.trace("Crypto Layer initialized");
+            this.calInitialized = true;
+        }
+
+        await sodium;
         log.trace("Libsodium initialized");
 
         log.info("Transport initialized");

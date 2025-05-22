@@ -126,20 +126,20 @@ describe("Device Onboarding", function () {
         expect(dev1Check).toBe(false);
 
         const dev1Container = await device1Account.activeDevice.secrets.loadSecret(DeviceSecretType.DeviceSignature);
-        const dev1Key = dev1Container!.secret as CryptoSignaturePrivateKey;
+        const dev1Key = dev1Container!.secret as unknown as CryptoSignaturePrivateKey;
         expect(dev1Key).toBeInstanceOf(CryptoSignaturePrivateKey);
         const dev2Container = await device2Account.activeDevice.secrets.loadSecret(DeviceSecretType.DeviceSignature);
-        const dev2Key = dev2Container!.secret as CryptoSignaturePrivateKey;
+        const dev2Key = dev2Container!.secret as unknown as CryptoSignaturePrivateKey;
         expect(dev2Key).toBeInstanceOf(CryptoSignaturePrivateKey);
         expect(dev1Key.toBase64()).not.toStrictEqual(dev2Key.toBase64());
     });
 
     test("should own the same synchronization key", async function () {
         const dev1Container = await device2Account.activeDevice.secrets.loadSecret(DeviceSecretType.IdentitySignature);
-        const dev1Key = dev1Container!.secret as CryptoSignaturePrivateKey;
+        const dev1Key = dev1Container!.secret as unknown as CryptoSignaturePrivateKey;
         expect(dev1Key).toBeInstanceOf(CryptoSignaturePrivateKey);
         const dev2Container = await device2Account.activeDevice.secrets.loadSecret(DeviceSecretType.IdentitySignature);
-        const dev2Key = dev2Container!.secret as CryptoSignaturePrivateKey;
+        const dev2Key = dev2Container!.secret as unknown as CryptoSignaturePrivateKey;
         expect(dev2Key).toBeInstanceOf(CryptoSignaturePrivateKey);
         expect(dev1Key.toBase64()).toStrictEqual(dev2Key.toBase64());
     });
